@@ -1,0 +1,33 @@
+schema: spec-driven
+
+context: |
+  Package: @vanduo-oss/vd3-charts (MIT, vanduo-oss org). Standalone Vue 3 charts
+  extracted 1-to-1 from @vanduo-oss/vd3-cbun@1.4.2 (charts 1.1.0). Named exports
+  on "." (Vue wrappers + framework-agnostic core) and "./css". No IIFE builds —
+  the Vue bindings ARE the root export; the core stays exported alongside
+  (wrappers consume it). Stack: plain JS core + thin Vue defineComponent
+  wrappers, hand-written .d.ts, esbuild single-entry build (esm+cjs,
+  external: ['vue'], no minify), styles.css copied to dist/vd3-charts.css.
+  vue >=3.3 is a REQUIRED peer. sideEffects: ["**/*.css"].
+  Version: package.json version IS VD_CHARTS_VERSION (1.1.0). Do not reset it.
+  Tests: vitest + @vue/test-utils + jsdom for wrappers/logic, Playwright smoke
+  against built dist/, tsc type tests via package self-reference.
+  vd3-cbun is READ-ONLY reference. Do not publish openspec/ to npm.
+
+rules:
+  proposal:
+    - Call out semver impact for package.json AND VD_CHARTS_VERSION (they stay equal)
+    - Always include a "Non-goals" section
+  specs:
+    - Use Given/When/Then scenario format under each requirement
+    - Use SHALL/MUST for normative requirements
+  design:
+    - No window.* globals, no auto-init/DOM-scan layers, no IIFE
+    - Core stays framework-agnostic; Vue layer stays a thin wrapper
+    - No new runtime npm dependencies
+  tasks:
+    - Include pnpm build and pnpm test when code changes
+    - Include esbuild metafile isolation verification when exports/build change
+    - Include docs sync step (vd3-docs) when public API changes
+  changelog:
+    - Track this package only (@vanduo-oss/vd3-charts); never docs-site content

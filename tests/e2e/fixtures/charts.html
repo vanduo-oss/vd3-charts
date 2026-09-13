@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>vd3-charts smoke</title>
+    <!-- Empty data-URI favicon: suppresses Chromium's auto /favicon.ico request
+         (a 404 would surface as a console error and fail the zero-errors gate). -->
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/dist/vd3-charts.css" />
+    <style>
+      :root {
+        --vd-bg-primary: #ffffff;
+        --vd-bg-secondary: #f8f9fa;
+        --vd-border-color: #dee2e6;
+        --vd-text-primary: #1a1d20;
+        --vd-text-muted: #868e96;
+        --vd-color-primary: #364fc7;
+        --vd-chart-1: #364fc7;
+        --vd-chart-2: #0b7285;
+        --vd-chart-3: #2b8a3e;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: system-ui, sans-serif;
+        background: #ffffff;
+      }
+      .chart {
+        width: 640px;
+        height: 360px;
+        margin-bottom: 24px;
+      }
+    </style>
+    <!-- `vue` is a bare external specifier inside the built dist entry; the
+         import map resolves it to the locally installed browser build (no CDN,
+         no bundler). We only exercise the framework-agnostic core factory, so
+         no Vue app is ever mounted. -->
+    <script type="importmap">
+      { "imports": { "vue": "/node_modules/vue/dist/vue.esm-browser.js" } }
+    </script>
+  </head>
+  <body>
+    <div id="bar" class="chart"></div>
+    <div id="line" class="chart"></div>
+    <div id="area" class="chart"></div>
+    <div id="donut" class="chart"></div>
+    <div id="pie" class="chart"></div>
+
+    <script type="module">
+      import {
+        BarChart,
+        LineChart,
+        AreaChart,
+        DonutChart,
+        PieChart,
+        VD_CHARTS_VERSION,
+      } from '/dist/index.js';
+
+      const series = [
+        { month: 'Jan', value: 120 },
+        { month: 'Feb', value: 180 },
+        { month: 'Mar', value: 90 },
+        { month: 'Apr', value: 150 },
+      ];
+
+      const slices = [
+        { label: 'A', value: 40 },
+        { label: 'B', value: 30 },
+        { label: 'C', value: 20 },
+        { label: 'D', value: 10 },
+      ];
+
+      window.chartClicks = [];
+      window.chartsVersion = VD_CHARTS_VERSION;
+
+      window.chart = BarChart({
+        target: '#bar',
+        data: series,
+        x: 'month',
+        y: 'value',
+        title: 'Sales',
+        width: 640,
+        height: 360,
+        tooltip: (d) => `${d.month}: ${d.value}`,
+        onBarClick: ({ datum }) => window.chartClicks.push(datum.month),
+      });
+
+      LineChart({
+        target: '#line',
+        data: series,
+        x: 'month',
+        y: 'value',
+        title: 'Trend',
+        width: 640,
+        height: 360,
+        legend: false,
+      });
+
+      AreaChart({
+        target: '#area',
+        data: series,
+        x: 'month',
+        y: 'value',
+        title: 'Fill',
+        width: 640,
+        height: 360,
+        legend: false,
+      });
+
+      DonutChart({
+        target: '#donut',
+        data: slices,
+        label: 'label',
+        value: 'value',
+        title: 'Donut',
+        width: 640,
+        height: 360,
+        legend: false,
+      });
+
+      PieChart({
+        target: '#pie',
+        data: slices,
+        label: 'label',
+        value: 'value',
+        title: 'Pie',
+        width: 640,
+        height: 360,
+        legend: false,
+      });
+
+      // Rasterize the rendered SVG onto a real <canvas> through a same-origin
+      // Blob URL (which does NOT taint the canvas) and count non-white pixels —
+      // proof, via getImageData, that the chart actually painted marks.
+      window.rasterizeNonWhite = async (selector) => {
+        const svg = document.querySelector(selector + ' svg');
+        if (!svg) return { error: 'no-svg', nonWhite: 0, w: 0, h: 0 };
+        const w = Math.round(svg.width.baseVal.value) || 640;
+        const h = Math.round(svg.height.baseVal.value) || 360;
+        const xml = new XMLSerializer().serializeToString(svg);
+        const url = URL.createObjectURL(new Blob([xml], { type: 'image/svg+xml;charset=utf-8' }));
+        try {
+          const img = new Image();
+          img.width = w;
+          img.height = h;
+          await new Promise((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = reject;
+            img.src = url;
+          });
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const px = ctx.getImageData(0, 0, w, h).data;
+          let nonWhite = 0;
+          for (let i = 0; i < px.length; i += 4) {
+            if (px[i] !== 255 || px[i + 1] !== 255 || px[i + 2] !== 255) nonWhite += 1;
+          }
+          return { nonWhite, w, h };
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      };
+
+      // Donut arcs use a positive inner radius (two A commands); pie wedges
+      // radiate from the center (single outer A, path starts at cx,cy).
+      window.slicePathStats = (selector) => {
+        const paths = [...document.querySelectorAll(selector + ' path.vd-chart-slice')];
+        return paths.map((el) => {
+          const d = el.getAttribute('d') || '';
+          const arcs = (d.match(/A/g) || []).length;
+          return { d, arcs, fromCenter: /^M[\d.-]+,[\d.-]+ L/.test(d) };
+        });
+      };
+
+      window.__ready = true;
+    </script>
+  </body>
+</html>

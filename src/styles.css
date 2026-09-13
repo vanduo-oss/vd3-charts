@@ -1,0 +1,133 @@
+:root {
+  --vd-chart-1: var(--vd-color-primary, #5c7cfa);
+  --vd-chart-2: var(--vd-color-info, #228be6);
+  --vd-chart-3: var(--vd-color-success, #40c057);
+  --vd-chart-4: var(--vd-color-warning, #fab005);
+  --vd-chart-5: var(--vd-color-error, #fa5252);
+  --vd-chart-6: #12b886;
+  --vd-chart-7: #be4bdb;
+  --vd-chart-8: #fd7e14;
+}
+
+.vd-chart-root {
+  position: relative;
+  min-height: 220px;
+  color: var(--vd-text-primary, #1a1d20);
+}
+
+.vd-chart-root svg {
+  display: block;
+  max-width: 100%;
+  overflow: visible;
+  font-family: inherit;
+}
+
+.vd-chart-tooltip {
+  position: absolute;
+  z-index: 20;
+  max-width: min(260px, calc(100% - 1rem));
+  padding: 0.45rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--vd-border-color, #dee2e6) 72%, transparent);
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--vd-bg-primary, #ffffff) 96%, transparent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  color: var(--vd-text-primary, #1a1d20);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 0.75rem));
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.vd-chart-tooltip.is-visible {
+  opacity: 1;
+}
+
+/* Dark theme overrides — tooltip */
+[data-theme="dark"] .vd-chart-tooltip {
+  background: color-mix(in srgb, var(--vd-bg-primary, #1a1d20) 96%, transparent);
+  border-color: color-mix(in srgb, var(--vd-border-color, #495057) 72%, transparent);
+  color: var(--vd-text-primary, #e9ecef);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .vd-chart-tooltip {
+    background: color-mix(in srgb, var(--vd-bg-primary, #1a1d20) 96%, transparent);
+    border-color: color-mix(in srgb, var(--vd-border-color, #495057) 72%, transparent);
+    color: var(--vd-text-primary, #e9ecef);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
+  }
+}
+
+/* Focus indicator for interactive chart marks (keyboard navigation) */
+.vd-chart-root [tabindex="0"]:focus-visible {
+  outline: 2px solid var(--vd-color-primary, #5c7cfa);
+  outline-offset: 1px;
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .vd-chart-tooltip {
+    transition: none;
+  }
+}
+
+.vd-chart-empty {
+  color: var(--vd-text-muted, #868e96);
+  font-size: 0.875rem;
+}
+
+/* Screen-reader-only utility for accessible data table fallback */
+.vd-chart-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Accessible data table styling (when visible) */
+.vd-chart-data-table:not(.vd-chart-sr-only) {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  color: var(--vd-text-primary, #1a1d20);
+}
+
+.vd-chart-data-table:not(.vd-chart-sr-only) caption {
+  caption-side: top;
+  font-weight: 600;
+  text-align: left;
+  margin-bottom: 0.5rem;
+  color: var(--vd-text-primary, #1a1d20);
+}
+
+.vd-chart-data-table:not(.vd-chart-sr-only) th,
+.vd-chart-data-table:not(.vd-chart-sr-only) td {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--vd-border-color, #dee2e6);
+  text-align: left;
+}
+
+.vd-chart-data-table:not(.vd-chart-sr-only) th {
+  background: color-mix(in srgb, var(--vd-bg-primary, #ffffff) 90%, var(--vd-border-color, #dee2e6));
+  font-weight: 600;
+}
+
+[data-theme="dark"] .vd-chart-data-table:not(.vd-chart-sr-only) th {
+  background: color-mix(in srgb, var(--vd-bg-primary, #1a1d20) 88%, var(--vd-border-color, #495057));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .vd-chart-data-table:not(.vd-chart-sr-only) th {
+    background: color-mix(in srgb, var(--vd-bg-primary, #1a1d20) 88%, var(--vd-border-color, #495057));
+  }
+}
+
