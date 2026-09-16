@@ -13,7 +13,13 @@ export {
   VdDonutChart,
   VdPieChart,
 } from './vue';
-export type { VdChartType, VdChartAccessor, VdChartProps, VdChartEmits } from './vue';
+export type {
+  VdChartType,
+  VdChartAccessor,
+  VdChartProps,
+  VdChartEmits,
+  VdChartExposed,
+} from './vue';
 
 export {
   BarChart,

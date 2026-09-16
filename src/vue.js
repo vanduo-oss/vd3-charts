@@ -115,10 +115,12 @@ export const VdChart = defineComponent({
   // Mark clicks the core reports through its callbacks are re-emitted here as
   // idiomatic kebab-case Vue events carrying the core `ClickEvent` payload.
   emits: ['point-click', 'bar-click', 'slice-click'],
-  setup(props, { emit }) {
+  setup(props, { emit, expose }) {
     const el = ref(null);
     let instance = null;
     let currentType = props.type;
+    // Call after ancestor theme/CSS changes that do not alter a chart prop.
+    expose({ refresh: () => instance?.render() });
 
     const create = () => {
       const factory = FACTORIES[props.type] || BarChart;
@@ -200,8 +202,10 @@ function typed(name, type) {
   return defineComponent({
     name,
     props: CHART_PROPS,
-    setup(props) {
-      return () => h(VdChart, { ...props, type });
+    setup(props, { expose }) {
+      const chart = ref(null);
+      expose({ refresh: () => chart.value?.refresh() });
+      return () => h(VdChart, { ...props, type, ref: chart });
     },
   });
 }
