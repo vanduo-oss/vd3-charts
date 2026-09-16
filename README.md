@@ -67,9 +67,12 @@ dependency; any provider of the tokens works.
 
 ```js
 import '@vanduo-oss/vd3/css';
-// …or the tokens-only layer:
+// Same component styles without bundled icon fonts:
 import '@vanduo-oss/vd3/css/core';
 ```
+
+`@vanduo-oss/vd3/css/core` is **not** tokens-only. Token JSON is
+`@vanduo-oss/vd3/tokens.json`.
 
 Tokens consumed include `--vd-bg-primary`, `--vd-bg-secondary`,
 `--vd-text-primary`, `--vd-text-muted`, `--vd-border-color`,
