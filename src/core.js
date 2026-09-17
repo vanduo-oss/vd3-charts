@@ -16,7 +16,7 @@ const DEFAULT_COLORS = [
   '#fd7e14',
 ];
 
-export const VD_CHARTS_VERSION = '1.1.0';
+export const VD_CHARTS_VERSION = '1.1.1';
 
 let chartId = 0;
 

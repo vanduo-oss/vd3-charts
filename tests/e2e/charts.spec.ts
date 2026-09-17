@@ -40,7 +40,7 @@ test.describe('charts smoke — built dist entry renders chart types', () => {
 
   test('reports the built-entry version constant', async ({ page }) => {
     const version = await page.evaluate(() => (window as unknown as ChartsWindow).chartsVersion);
-    expect(version).toBe('1.1.0');
+    expect(version).toBe('1.1.1');
   });
 
   test('rasterizes the chart to a non-blank canvas (getImageData)', async ({ page }) => {

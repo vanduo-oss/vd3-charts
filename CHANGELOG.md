@@ -2,7 +2,7 @@
 
 All notable changes to `@vanduo-oss/vd3-charts` are documented here.
 
-## Unreleased
+## 1.1.1 — 2026-09-17
 
 ### Fixed
 
