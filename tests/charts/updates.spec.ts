@@ -65,6 +65,28 @@ describe('chart updates', () => {
     expect(document.activeElement?.tagName.toLowerCase()).toBe('svg');
   });
 
+  it('keeps numeric ids distinct from positional indexes when restoring focus', () => {
+    const instance = chart();
+    instance.update({
+      data: [
+        { id: 1, x: 'A', y: 1 },
+        { x: 'B', y: 2 },
+      ],
+    });
+    const bars = instance.target.querySelectorAll('.vd-chart-bar');
+    expect(bars[0].getAttribute('data-vd-mark-key')).not.toBe(
+      bars[1].getAttribute('data-vd-mark-key'),
+    );
+    (bars[0] as HTMLElement).focus();
+    instance.update({
+      data: [
+        { x: 'B', y: 2 },
+        { id: 1, x: 'A', y: 1 },
+      ],
+    });
+    expect(document.activeElement?.getAttribute('aria-label')).toContain('A');
+  });
+
   it('refreshes a typed Vue component after theme-only changes', () => {
     const wrapper = mount(VdBarChart, {
       attachTo: document.body,

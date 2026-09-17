@@ -43,6 +43,7 @@ import {
   type VdChartProps,
   type VdChartType,
   type VdChartEmits,
+  type VdChartExposed,
 } from '@vanduo-oss/vd3-charts';
 import * as ChartsApi from '@vanduo-oss/vd3-charts';
 
@@ -145,6 +146,8 @@ void VdScatterChart;
 void VdDonutChart;
 void VdPieChart;
 void barOpts;
+declare const genericChart: VdChartExposed;
+genericChart.refresh();
 void y0;
 void linTicks;
 void bw;

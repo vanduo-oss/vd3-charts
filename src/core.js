@@ -474,14 +474,18 @@ function formatCategory(value) {
   return value == null ? '' : String(value);
 }
 
+function markIdentity(context) {
+  if (context.datum?.id != null) return ['id', context.datum.id];
+  if (context.label != null) return ['label', context.label];
+  if (context.x != null) return ['x', context.x];
+  return ['idx', context.index];
+}
+
 function attachTooltip(instance, mark, options, context, fallback) {
   // Stable data ids are preferred; category/x and series identify ordinary rows.
   mark.setAttribute(
     'data-vd-mark-key',
-    JSON.stringify([
-      context.seriesName ?? context.seriesIndex ?? '',
-      context.datum?.id ?? context.label ?? context.x ?? context.index,
-    ]),
+    JSON.stringify([context.seriesName ?? context.seriesIndex ?? '', markIdentity(context)]),
   );
   const tooltip = options.tooltip;
   if (tooltip === false) return;
@@ -505,7 +509,10 @@ function attachTooltip(instance, mark, options, context, fallback) {
   const hide = () => instance.hideTooltip();
   mark.addEventListener('pointerenter', show);
   mark.addEventListener('pointermove', show);
-  mark.addEventListener('pointerleave', hide);
+  mark.addEventListener('pointerleave', (event) => {
+    if (event.pointerType === 'touch') return;
+    hide();
+  });
   mark.addEventListener('focus', show);
   mark.addEventListener('blur', hide);
   mark.addEventListener('pointerup', (event) => {

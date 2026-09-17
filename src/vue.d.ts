@@ -105,7 +105,16 @@ export interface VdChartEmits {
 }
 
 /* eslint-disable @typescript-eslint/no-empty-object-type -- DefineComponent filler params */
-export declare const VdChart: DefineComponent<VdChartProps, {}, {}, {}, {}, {}, {}, VdChartEmits>;
+export declare const VdChart: DefineComponent<
+  VdChartProps,
+  VdChartExposed,
+  {},
+  {},
+  {},
+  {},
+  {},
+  VdChartEmits
+>;
 export declare const VdBarChart: DefineComponent<
   VdChartProps,
   VdChartExposed,
