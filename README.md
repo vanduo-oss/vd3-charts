@@ -6,10 +6,10 @@ Vanduo **charts** for Vue 3: SVG bar, line, area, scatter, donut, and pie —
 Vue wrappers plus a framework-agnostic core (factories, scales, helpers).
 Extracted 1-to-1 from `@vanduo-oss/vd3-cbun` charts **1.1.0**.
 
-**Status: 1.1.0.** `VD_CHARTS_VERSION` matches the package version. WAI-ARIA
-Graphics Module roles, arrow-key mark navigation, accessible data table,
-responsive height that ignores visible table growth, mark-click emits, and
-additive core `role` / Vue `svgRole` options.
+**Status: 1.1.1.** `VD_CHARTS_VERSION` matches the package version. Pie
+defaults stay filled when `innerRadiusRatio` is omitted; the resize observer
+follows `responsive`; data redraws keep logical focus; Vue `refresh()` covers
+CSS-only theme changes; touch can reveal details.
 
 ## Install
 
@@ -54,10 +54,10 @@ if anything but `vue` is externalized. The package declares
 
 ## Version policy
 
-`package.json` version **is** `VD_CHARTS_VERSION` (`1.1.0`). Bump both together.
+`package.json` version **is** `VD_CHARTS_VERSION` (`1.1.1`). Bump both together.
 This continues the cbun charts lineage (old-line `0.2.0` → bundle `1.0.0` →
-`1.0.1` bar baseline → `1.1.0` mark-click emits). Do not reuse the retired
-npm name `@vanduo-oss/charts`.
+`1.0.1` bar baseline → `1.1.0` mark-click emits → `1.1.1` pie/update fixes).
+Do not reuse the retired npm name `@vanduo-oss/charts`.
 
 ## Theming
 
@@ -67,9 +67,12 @@ dependency; any provider of the tokens works.
 
 ```js
 import '@vanduo-oss/vd3/css';
-// …or the tokens-only layer:
+// Same component styles without bundled icon fonts:
 import '@vanduo-oss/vd3/css/core';
 ```
+
+`@vanduo-oss/vd3/css/core` is **not** tokens-only. Token JSON is
+`@vanduo-oss/vd3/tokens.json`.
 
 Tokens consumed include `--vd-bg-primary`, `--vd-bg-secondary`,
 `--vd-text-primary`, `--vd-text-muted`, `--vd-border-color`,

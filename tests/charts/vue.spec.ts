@@ -14,7 +14,7 @@
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { VdBarChart, VdChart } from '../../src/index.js';
+import { VdBarChart, VdChart, VdPieChart } from '../../src/index.js';
 
 const wrappers: VueWrapper[] = [];
 function mountChart(props: Record<string, unknown>, attrs: Record<string, unknown> = {}) {
@@ -185,5 +185,40 @@ describe('typed chart wrapper — VdBarChart', () => {
     wrappers.push(wrapper);
     expect(wrapper.find('svg.vd-chart-svg').exists()).toBe(true);
     expect(wrapper.findAll('rect.vd-chart-bar')).toHaveLength(3);
+  });
+});
+
+describe('Vue pie defaults', () => {
+  it.each([VdChart, VdPieChart])(
+    'keeps the center filled when radius is absent or removed',
+    async (component) => {
+      const wrapper = mount(component, {
+        props: {
+          type: 'pie',
+          data: [
+            { label: 'A', value: 2 },
+            { label: 'B', value: 3 },
+          ],
+        },
+      });
+      wrappers.push(wrapper);
+      const arcs = () => (wrapper.get('.vd-chart-slice').attributes('d').match(/A/g) ?? []).length;
+      expect(arcs()).toBe(1);
+      await wrapper.setProps({ innerRadiusRatio: 0.5 });
+      expect(arcs()).toBe(2);
+      await wrapper.setProps({ innerRadiusRatio: undefined });
+      expect(arcs()).toBe(1);
+    },
+  );
+
+  it('keeps the donut hole when radius is absent', () => {
+    const wrapper = mountChart({
+      type: 'donut',
+      data: [
+        { label: 'A', value: 2 },
+        { label: 'B', value: 3 },
+      ],
+    });
+    expect(wrapper.get('.vd-chart-slice').attributes('d').match(/A/g)).toHaveLength(2);
   });
 });

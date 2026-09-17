@@ -1,57 +1,37 @@
 ---
 name: vanduo-vd3-charts
-description: Use when adding Vanduo Vue 3 charts with @vanduo-oss/vd3-charts — SVG bar, line, area, scatter, donut, and pie wrappers plus a framework-agnostic core. Covers install, CSS, theming, a11y, and VD_CHARTS_VERSION.
+description: Add or update Vue 3 SVG charts using @vanduo-oss/vd3-charts, including data, events, themes, and responsive behavior.
 ---
 
-# @vanduo-oss/vd3-charts
+# Vanduo charts
 
-Standalone Vue 3 charts package. `vue >=3.3.0` is a required peer. The root
-import re-exports the Vue wrapper family AND the framework-agnostic core.
-`VD_CHARTS_VERSION` is `1.1.0` and matches `package.json`.
+Install `@vanduo-oss/vd3-charts` alongside Vue. Import the named component and
+`@vanduo-oss/vd3-charts/css`; no global registration is needed. The stylesheet
+has token fallbacks. If the app uses VD3, import its base CSS once in the app
+entry to share the theme; choose `/css` or `/css/core`, not both.
 
-## Install
+## Tasks
 
-```sh
-pnpm add @vanduo-oss/vd3-charts
-```
+- [Interactive bar chart](recipes/bar.vue): complete rows, field accessors,
+  title/description, a visible data table, and the `bar-click` event.
+- [Pie with theme refresh](recipes/pie.vue): complete data and a template ref.
+  A pie defaults to a filled center; a donut defaults to a 0.62 inner radius.
 
-Nothing registers globally. For correct theming, provide the Vanduo `--vd-*`
-design tokens (see [Theming](#theming)).
+Copy a recipe and replace its data. Keep stable row `id` values when data may
+reorder; mark focus follows the id, then category/x and series. Removing a
+focused mark moves focus to a remaining neighbor; an empty chart focuses its SVG.
 
-## Charts
+Changing props redraws the chart. After ancestor CSS/theme changes that do not
+change a prop, await Vue's next tick and call `chartRef.refresh()`. Every Vue
+chart export exposes it. Core callers use `instance.render()`. Responsive
+observation follows the current `responsive` option.
 
-```js
-import {
-  VdChart, // generic; pick the type via the `type` prop
-  VdBarChart,
-  VdLineChart,
-  VdAreaChart,
-  VdScatterChart,
-  VdDonutChart,
-  VdPieChart,
-} from '@vanduo-oss/vd3-charts';
-import '@vanduo-oss/vd3-charts/css';
-```
+Verify keyboard arrows, Enter/Space events, a data update while focused, resize,
+and touch details. Describe the chart's takeaway in prose; value labels and a
+data table alone do not establish page accessibility.
 
-The same entry re-exports the framework-agnostic core: the chart factories
-(`BarChart`, `LineChart`, `AreaChart`, `ScatterChart`, `DonutChart`, `PieChart`),
-the scales (`scaleLinear`, `scaleTime`, `scaleBand`, `scalePoint`,
-`scaleOrdinal`), accessor/tick helpers (`createAccessor`, `ticks`,
-`niceDomain`), the path builders (`linePath`, `areaPath`, `arcPath`), and
-`resolveTheme`. No name collision, so the core factories keep their own names.
-CSS ships at `@vanduo-oss/vd3-charts/css`. Charts expose WAI-ARIA Graphics
-roles, arrow-key mark navigation, and an accessible data table (`dataTable`:
-`true` / `false` / `'visible'`; `ariaRoleDescription` overrides the SVG
-description; core `role` / Vue `svgRole` override the default
-`graphics-document document` role without consuming the Vue root `role`
-attribute). `VD_CHARTS_VERSION` is `1.1.0`.
-
-## Theming
-
-Charts use `--vd-*` tokens with built-in fallbacks. vd3 is not a package
-dependency.
-
-```js
-import '@vanduo-oss/vd3/css';
-import '@vanduo-oss/vd3/css/core';
-```
+Use [Vue declarations](dist/vue.d.ts) for props/events and
+[core declarations](dist/core.d.ts) for factories, scales, and options. The
+core factories share the root export and need a browser element; Vue components
+create them on mount and can render an SSR shell. Always destroy manually
+created core instances when their host is removed.

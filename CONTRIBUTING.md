@@ -1,5 +1,11 @@
 # Contributing to vd3-charts
 
+## Branch and remote actions
+
+Start a `dev-vXXX` branch from freshly fetched `origin/main`. Keep work and
+commits local until the user and agent are satisfied with local QA. Push, PR,
+merge, publish, and deploy require explicit authorization. Do not edit `main`.
+
 ## Setup
 
 Requires **Node 24** (CI) and **pnpm 10**. Consumers of the compiled package
@@ -23,6 +29,13 @@ pnpm test:e2e
 
 `test:types` and `test:e2e` consume `dist/` — run `pnpm build` first.
 Install Chromium once: `pnpm exec playwright install chromium`.
+
+## CI cost
+
+`.github/workflows/ci.yml` is one job with `timeout-minutes: 15`. It runs
+lint, format, stylelint, unit tests, build, skill checks, types, and
+Chromium packaging smoke. GitHub bills minutes used, not the timeout. This
+branch has not been run remotely.
 
 ## OpenSpec
 

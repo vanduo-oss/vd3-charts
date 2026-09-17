@@ -8,7 +8,7 @@ publish surface for `@vanduo-oss/vd3-charts`.
 
 ### Requirement: package identity and exports contract
 
-The package MUST be `@vanduo-oss/vd3-charts`, version `1.1.0`, MIT-licensed, ESM
+The package MUST be `@vanduo-oss/vd3-charts`, version `1.1.1`, MIT-licensed, ESM
 (`type: "module"`), with `vue >=3.3.0` declared as a REQUIRED peer dependency
 (no `peerDependenciesMeta` optionality). It MUST set
 `publishConfig: { "access": "public" }`. The `exports` map SHALL declare `.`
@@ -41,7 +41,7 @@ The package MUST be `@vanduo-oss/vd3-charts`, version `1.1.0`, MIT-licensed, ESM
 
 - **GIVEN** the release-ready `package.json`
 - **WHEN** its publish-relevant fields are inspected
-- **THEN** `version` is `1.1.0` and `publishConfig.access` is `"public"`
+- **THEN** `version` is `1.1.1` and `publishConfig.access` is `"public"`
 
 ### Requirement: toolchain baseline
 
@@ -78,7 +78,7 @@ in `pnpm-workspace.yaml`.
 
 ### Requirement: version constant equals package version
 
-`VD_CHARTS_VERSION` MUST equal `package.json` `version` and MUST be `'1.1.0'`.
+`VD_CHARTS_VERSION` MUST equal `package.json` `version` and MUST be `'1.1.1'`.
 An automated test MUST assert that sync. There is no separate
 `component-versions.json`.
 
@@ -86,14 +86,15 @@ An automated test MUST assert that sync. There is no separate
 
 - **GIVEN** `src/core.js` and `package.json`
 - **WHEN** `VD_CHARTS_VERSION` is compared against `package.json` `version`
-- **THEN** both are exactly `'1.1.0'`
+- **THEN** both are exactly `'1.1.1'`
 
 ### Requirement: CI pipeline
 
 The repo MUST provide `.github/workflows/ci.yml` with SHA-pinned actions,
-least-privilege `permissions: contents: read`, pnpm 10.28.2, Node 24, and
-`paths-ignore: "**/*.md"` on push and pull_request. Gates run: frozen
-install, audit, lint, format:check, stylelint, test, **build**, `test:types`,
+least-privilege `permissions: contents: read`, pnpm 10.28.2, and Node 24.
+Gates run: frozen
+install, audit, lint, format:check, stylelint, test, **build**, `test:skills`,
+`test:types`,
 then Playwright Chromium. A `dependabot.yml` MUST keep the pinned actions
 current (weekly, grouped, 2-day cooldown).
 
@@ -102,7 +103,7 @@ current (weekly, grouped, 2-day cooldown).
 - **GIVEN** a push or pull request to `main` that is not markdown-only
 - **WHEN** the `ci` workflow runs
 - **THEN** it executes install, audit, lint, format:check, stylelint, test,
-  build, test:types, and the Playwright smoke, all with a read-only token
+  build, test:skills, test:types, and the Playwright smoke, all with a read-only token
 
 ### Requirement: single-entry isolation build
 
@@ -159,8 +160,9 @@ line, area, donut, and pie.
 
 The repo MUST ship `README.md`, `SKILL.md`, `CHANGELOG.md`, `CONTRIBUTING.md`,
 and the MIT `LICENSE`. Published files MUST stay limited to `dist`, `README.md`,
-`SKILL.md`, `CHANGELOG.md`, and `LICENSE`. `CHANGELOG.md` MUST carry a dated
-`## 1.1.0` entry. `SKILL.md` MUST carry Agent Skills frontmatter.
+`SKILL.md`, `CHANGELOG.md`, `LICENSE`, `recipes`, and `styles.d.ts`.
+`CHANGELOG.md` MUST carry a dated
+`## 1.1.1` entry. `SKILL.md` MUST carry Agent Skills frontmatter.
 
 #### Scenario: npm pack ships the docs and excludes internals
 

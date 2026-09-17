@@ -20,6 +20,12 @@ export type {
   ClickEvent,
 } from './core';
 
+/** Methods exposed by every chart component through a template ref. */
+export interface VdChartExposed {
+  /** Re-read CSS theme tokens and redraw; preserves logical mark focus. */
+  refresh(): void;
+}
+
 export type VdChartType = 'bar' | 'line' | 'area' | 'scatter' | 'donut' | 'pie';
 
 export type VdChartAccessor = string | ((row: Record<string, unknown>) => unknown);
@@ -99,10 +105,19 @@ export interface VdChartEmits {
 }
 
 /* eslint-disable @typescript-eslint/no-empty-object-type -- DefineComponent filler params */
-export declare const VdChart: DefineComponent<VdChartProps, {}, {}, {}, {}, {}, {}, VdChartEmits>;
+export declare const VdChart: DefineComponent<
+  VdChartProps,
+  VdChartExposed,
+  {},
+  {},
+  {},
+  {},
+  {},
+  VdChartEmits
+>;
 export declare const VdBarChart: DefineComponent<
   VdChartProps,
-  {},
+  VdChartExposed,
   {},
   {},
   {},
@@ -112,7 +127,7 @@ export declare const VdBarChart: DefineComponent<
 >;
 export declare const VdLineChart: DefineComponent<
   VdChartProps,
-  {},
+  VdChartExposed,
   {},
   {},
   {},
@@ -122,7 +137,7 @@ export declare const VdLineChart: DefineComponent<
 >;
 export declare const VdAreaChart: DefineComponent<
   VdChartProps,
-  {},
+  VdChartExposed,
   {},
   {},
   {},
@@ -132,7 +147,7 @@ export declare const VdAreaChart: DefineComponent<
 >;
 export declare const VdScatterChart: DefineComponent<
   VdChartProps,
-  {},
+  VdChartExposed,
   {},
   {},
   {},
@@ -142,7 +157,7 @@ export declare const VdScatterChart: DefineComponent<
 >;
 export declare const VdDonutChart: DefineComponent<
   VdChartProps,
-  {},
+  VdChartExposed,
   {},
   {},
   {},
@@ -152,7 +167,7 @@ export declare const VdDonutChart: DefineComponent<
 >;
 export declare const VdPieChart: DefineComponent<
   VdChartProps,
-  {},
+  VdChartExposed,
   {},
   {},
   {},

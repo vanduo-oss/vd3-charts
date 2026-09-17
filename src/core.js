@@ -16,7 +16,7 @@ const DEFAULT_COLORS = [
   '#fd7e14',
 ];
 
-export const VD_CHARTS_VERSION = '1.1.0';
+export const VD_CHARTS_VERSION = '1.1.1';
 
 let chartId = 0;
 
@@ -474,7 +474,19 @@ function formatCategory(value) {
   return value == null ? '' : String(value);
 }
 
+function markIdentity(context) {
+  if (context.datum?.id != null) return ['id', context.datum.id];
+  if (context.label != null) return ['label', context.label];
+  if (context.x != null) return ['x', context.x];
+  return ['idx', context.index];
+}
+
 function attachTooltip(instance, mark, options, context, fallback) {
+  // Stable data ids are preferred; category/x and series identify ordinary rows.
+  mark.setAttribute(
+    'data-vd-mark-key',
+    JSON.stringify([context.seriesName ?? context.seriesIndex ?? '', markIdentity(context)]),
+  );
   const tooltip = options.tooltip;
   if (tooltip === false) return;
 
@@ -497,9 +509,18 @@ function attachTooltip(instance, mark, options, context, fallback) {
   const hide = () => instance.hideTooltip();
   mark.addEventListener('pointerenter', show);
   mark.addEventListener('pointermove', show);
-  mark.addEventListener('pointerleave', hide);
+  mark.addEventListener('pointerleave', (event) => {
+    if (event.pointerType === 'touch') return;
+    hide();
+  });
   mark.addEventListener('focus', show);
   mark.addEventListener('blur', hide);
+  mark.addEventListener('pointerup', (event) => {
+    if (event.pointerType === 'touch') show(event);
+  });
+  mark.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') hide();
+  });
 }
 
 function attachClick(mark, callback, datum, index) {
@@ -1904,8 +1925,9 @@ function renderDonutChart(instance) {
 }
 
 class ChartInstance {
-  constructor(kind, options, renderer) {
+  constructor(kind, options, renderer, defaults = {}) {
     this.kind = kind;
+    this.defaults = defaults;
     this.options = { ...options };
     this.target = resolveTarget(options.target);
     this.renderer = renderer;
@@ -1921,6 +1943,13 @@ class ChartInstance {
 
   render() {
     if (this.destroyed) return this;
+    Object.entries(this.defaults).forEach(([key, value]) => {
+      if (this.options[key] === undefined) this.options[key] = value;
+    });
+    const marks = Array.from(this.target.querySelectorAll('[data-vd-mark-key][tabindex]'));
+    const focused = document.activeElement;
+    const focusIndex = marks.indexOf(focused);
+    const focusKey = focusIndex >= 0 ? focused.getAttribute('data-vd-mark-key') : null;
     const tableHeight = dataTableContribution(this.target);
     this.renderer(this);
     // The first visible table does not exist when the shell is measured. If
@@ -1930,12 +1959,24 @@ class ChartInstance {
     if (!Number(this.options.height) && dataTableContribution(this.target) !== tableHeight) {
       this.renderer(this);
     }
+    if (focusIndex >= 0) {
+      const next = Array.from(this.target.querySelectorAll('[data-vd-mark-key][tabindex]'));
+      const mark =
+        next.find((el) => el.getAttribute('data-vd-mark-key') === focusKey) ??
+        next[Math.min(focusIndex, next.length - 1)];
+      const destination = mark ?? this.target.querySelector('svg');
+      if (destination) {
+        if (!mark) destination.setAttribute('tabindex', '-1');
+        destination.focus({ preventScroll: true });
+      }
+    }
     return this;
   }
 
   update(nextOptions = {}) {
     if (this.destroyed) return this;
     this.options = { ...this.options, ...nextOptions };
+    this.setupResizeObserver();
     return this.render();
   }
 
@@ -1944,6 +1985,12 @@ class ChartInstance {
   }
 
   setupResizeObserver() {
+    if (this.options.responsive === false) {
+      this.resizeObserver?.disconnect();
+      this.resizeObserver = null;
+      return;
+    }
+    if (this.resizeObserver) return;
     if (this.options.responsive === false || !hasWindow() || typeof ResizeObserver === 'undefined')
       return;
     const chartHeight = () =>
@@ -2011,7 +2058,7 @@ class ChartInstance {
 
 function createChartFactory(kind, renderer, defaults = {}) {
   return function chartFactory(options = {}) {
-    return new ChartInstance(kind, { ...defaults, ...options }, renderer);
+    return new ChartInstance(kind, { ...defaults, ...options }, renderer, defaults);
   };
 }
 

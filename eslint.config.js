@@ -63,7 +63,7 @@ export default [
   },
   {
     // Node build scripts: node globals + console output is expected.
-    files: ['scripts/**/*.js'],
+    files: ['scripts/**/*.{js,mjs}'],
     languageOptions: {
       globals: {
         process: 'readonly',

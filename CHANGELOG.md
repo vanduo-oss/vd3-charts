@@ -2,6 +2,17 @@
 
 All notable changes to `@vanduo-oss/vd3-charts` are documented here.
 
+## 1.1.1 — 2026-09-17
+
+### Fixed
+
+- **Pie defaults** — omitting `innerRadiusRatio` (or removing the Vue prop)
+  keeps a filled pie. Donut still opens a hole.
+- **Updates** — the resize observer follows `responsive` false→true→false.
+  Data redraws keep logical keyboard focus when the mark still exists.
+  Vue `refresh()` redraws after CSS-only theme changes. Touch can reveal
+  details.
+
 ## 1.1.0 — 2026-09-13
 
 Extracted from `@vanduo-oss/vd3-cbun@1.4.2` as a standalone package. Component

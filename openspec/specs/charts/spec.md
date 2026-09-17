@@ -58,18 +58,19 @@ or scan the DOM for `data-vd-chart` attributes. The path/scale helpers that
 - **THEN** the import succeeds (guarded helpers like `resolveTheme` return
   fallback values instead of touching the DOM)
 
-### Requirement: charts version constant is 1.1.0
+### Requirement: charts version constant is 1.1.1
 
-`VD_CHARTS_VERSION` SHALL be `'1.1.0'` (reset from the old line's `'0.2.0'` to
+`VD_CHARTS_VERSION` SHALL be `'1.1.1'` (reset from the old line's `'0.2.0'` to
 `'1.0.0'` at bundle launch, patch-bumped to `'1.0.1'` for the bar-baseline-clamp
-fix, then minor-bumped to `'1.1.0'` for the additive wrapper mark-click emits)
+fix, minor-bumped to `'1.1.0'` for the additive wrapper mark-click emits, then
+patch-bumped to `'1.1.1'` for pie defaults and update/focus fixes)
 and MUST equal `package.json` `version`.
 
 #### Scenario: version constant matches the manifest
 
 - **GIVEN** the charts core and `package.json`
 - **WHEN** `VD_CHARTS_VERSION` is compared against `package.json` `version`
-- **THEN** both are exactly `'1.1.0'`
+- **THEN** both are exactly `'1.1.1'`
 
 ### Requirement: charts stylesheet ships as a css subpath
 
@@ -95,7 +96,7 @@ baseline, `arcPath` donut vs pie arcs), factory option handling (defaults,
 `innerRadiusRatio` presets, invalid-row filtering), and a `VdChart` mount
 spec (mount creates the underlying chart in the container, prop change
 re-renders, unmount destroys it). The suite MUST assert
-`VD_CHARTS_VERSION === '1.1.0'` and that it equals `package.json` `version`. Scale/path/accessor specs SHALL run in a plain
+`VD_CHARTS_VERSION === '1.1.1'` and that it equals `package.json` `version`. Scale/path/accessor specs SHALL run in a plain
 Node environment (no DOM) to prove the primitives are runtime-agnostic;
 factory rendering and mount specs run under jsdom.
 
@@ -119,7 +120,7 @@ factory rendering and mount specs run under jsdom.
 
 - **GIVEN** the charts unit suite
 - **WHEN** it compares `VD_CHARTS_VERSION` with `package.json` `version`
-- **THEN** the test fails unless both are exactly `'1.1.0'`
+- **THEN** the test fails unless both are exactly `'1.1.1'`
 
 ### Requirement: charts real-browser smoke coverage
 
