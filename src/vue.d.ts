@@ -1,6 +1,7 @@
 import type { DefineComponent } from 'vue';
 import type {
   Annotation,
+  ChartMargin,
   ClickEvent,
   ColorOption,
   DataLabelsOption,
@@ -17,6 +18,7 @@ export type {
   LegendOptions,
   DataLabelsOption,
   Annotation,
+  ChartMargin,
   ClickEvent,
 } from './core';
 
@@ -51,9 +53,12 @@ export interface VdChartProps {
   /** Rendered into SVG accessibility metadata. */
   title?: string;
   description?: string;
+  ariaLabel?: string;
   width?: number;
   /** Container min-height in px. Default `300`. */
   height?: number;
+  /** Custom plot margins `{ top, right, bottom, left }`. */
+  margin?: ChartMargin;
   /** Donut/pie inner radius ratio. */
   innerRadiusRatio?: number;
   theme?: Record<string, unknown>;
@@ -68,6 +73,8 @@ export interface VdChartProps {
   dataLabels?: boolean | DataLabelsOption;
   /** Reference lines drawn across the plot. */
   annotations?: Annotation[];
+  /** Horizontal scale type. */
+  xScale?: 'linear' | 'time' | 'point' | 'band';
   /** Pin axis bounds (otherwise auto-scaled to the data). */
   xMin?: number;
   xMax?: number;
@@ -83,6 +90,28 @@ export interface VdChartProps {
   /** Axis titles. */
   xAxis?: { label?: string };
   yAxis?: { label?: string };
+  /** Bar band padding (0 to 0.8). */
+  barPadding?: number;
+  /** Line/area stroke color override. */
+  stroke?: string;
+  /** Line/area stroke width override. */
+  strokeWidth?: number;
+  /** Render points on line/area charts (`false` hides points). */
+  points?: boolean;
+  /** Point radius in px. */
+  pointRadius?: number;
+  /** Scatter point fill override. */
+  pointFill?: string;
+  /** Scatter point opacity override. */
+  pointOpacity?: number;
+  /** Area fill (`true`, `false`, or CSS color). */
+  fill?: boolean | string;
+  /** Area fill opacity. */
+  fillOpacity?: number;
+  /** Donut center label (`false` to hide, or custom string). */
+  centerLabel?: boolean | string;
+  /** Donut center subtitle label. */
+  centerSubLabel?: string;
   /** Accessible data table: `true` (sr-only, default) / `false` / `'visible'`. */
   dataTable?: boolean | 'visible';
   /** Override the SVG `aria-roledescription` (defaults to `${kind} chart`). */

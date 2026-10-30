@@ -299,12 +299,12 @@ describe('resolveTheme — window branch (stubbed token cascade)', () => {
 });
 
 describe('charts version constant', () => {
-  it('VD_CHARTS_VERSION === "1.1.1"', () => {
-    expect(VD_CHARTS_VERSION).toBe('1.1.1');
+  it('VD_CHARTS_VERSION === "1.2.0"', () => {
+    expect(VD_CHARTS_VERSION).toBe('1.2.0');
   });
 
   it('matches package.json version', () => {
     expect(pkg.version).toBe(VD_CHARTS_VERSION);
-    expect(pkg.version).toBe('1.1.1');
+    expect(pkg.version).toBe('1.2.0');
   });
 });

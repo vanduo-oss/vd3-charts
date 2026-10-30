@@ -6,7 +6,14 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { BarChart, LineChart, ScatterChart, DonutChart } from '../../src/core.js';
+import {
+  AreaChart,
+  BarChart,
+  DonutChart,
+  LineChart,
+  PieChart,
+  ScatterChart,
+} from '../../src/core.js';
 import type { ChartInstance } from '../../src/core';
 
 const instances: ChartInstance[] = [];
@@ -481,5 +488,140 @@ describe('donut center label', () => {
     const allText = Array.from(svg.querySelectorAll('text')).map((t) => t.textContent);
     expect(allText).toContain('Revenue');
     expect(allText).toContain('2025');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Color option (CSS color strings, field names, callbacks) & Legend position
+// ---------------------------------------------------------------------------
+
+describe('color option and legend.position (v1.2.0)', () => {
+  it('applies a CSS color string across bar, line, area, scatter, donut, and pie charts', () => {
+    const barEl = target();
+    track(BarChart({ target: barEl, data: BAR_ROWS, x: 'cat', y: 'val', color: '#40c057' }));
+    expect(barEl.querySelector('rect.vd-chart-bar')?.getAttribute('fill')).toBe('#40c057');
+
+    const lineEl = target();
+    track(
+      LineChart({
+        target: lineEl,
+        data: [
+          { x: 0, y: 1 },
+          { x: 1, y: 2 },
+        ],
+        x: 'x',
+        y: 'y',
+        color: '#f03e3e',
+      }),
+    );
+    expect(lineEl.querySelector('path.vd-chart-line-path')?.getAttribute('stroke')).toBe('#f03e3e');
+
+    const areaEl = target();
+    track(
+      AreaChart({
+        target: areaEl,
+        data: [
+          { x: 0, y: 1 },
+          { x: 1, y: 2 },
+        ],
+        x: 'x',
+        y: 'y',
+        color: 'rgb(16, 152, 173)',
+      }),
+    );
+    expect(areaEl.querySelector('path.vd-chart-area-path')?.getAttribute('fill')).toBe(
+      'rgb(16, 152, 173)',
+    );
+
+    const scatterEl = target();
+    track(
+      ScatterChart({
+        target: scatterEl,
+        data: [
+          { x: 1, y: 2 },
+          { x: 3, y: 4 },
+        ],
+        x: 'x',
+        y: 'y',
+        color: 'var(--vd-color-warning)',
+      }),
+    );
+    expect(scatterEl.querySelector('circle.vd-chart-scatter-point')?.getAttribute('fill')).toBe(
+      'var(--vd-color-warning)',
+    );
+
+    const donutEl = target();
+    track(
+      DonutChart({
+        target: donutEl,
+        data: [
+          { label: 'a', value: 30, tone: '#7950f2' },
+          { label: 'b', value: 70, tone: '#e64980' },
+        ],
+        label: 'label',
+        value: 'value',
+        color: (row) => String(row.tone),
+      }),
+    );
+    const slices = donutEl.querySelectorAll('path.vd-chart-slice');
+    expect(slices[0].getAttribute('fill')).toBe('#7950f2');
+    expect(slices[1].getAttribute('fill')).toBe('#e64980');
+
+    const pieEl = target();
+    track(
+      PieChart({
+        target: pieEl,
+        data: [
+          { label: 'a', value: 30 },
+          { label: 'b', value: 70 },
+        ],
+        label: 'label',
+        value: 'value',
+        color: '#fab005',
+      }),
+    );
+    expect(pieEl.querySelector('path.vd-chart-slice')?.getAttribute('fill')).toBe('#fab005');
+  });
+
+  it('honors legend.position on donut and multi-series Cartesian charts', () => {
+    const donutEl = target();
+    track(
+      DonutChart({
+        target: donutEl,
+        width: 640,
+        height: 320,
+        data: [
+          { label: 'Desktop', value: 60 },
+          { label: 'Mobile', value: 40 },
+        ],
+        legend: { position: 'top' },
+      }),
+    );
+    const topLegendRect = donutEl.querySelector('.vd-chart-legend rect');
+    expect(topLegendRect).not.toBeNull();
+    // Top legend renders near plot.top - 22 (y < 30), whereas right legend renders near plot.right - 120
+    expect(Number(topLegendRect!.getAttribute('y'))).toBeLessThan(30);
+
+    const multiBarEl = target();
+    track(
+      BarChart({
+        target: multiBarEl,
+        width: 640,
+        height: 320,
+        data: [
+          { cat: 'Q1', a: 10, b: 20 },
+          { cat: 'Q2', a: 15, b: 25 },
+        ],
+        x: 'cat',
+        series: [
+          { name: 'Series A', y: 'a' },
+          { name: 'Series B', y: 'b' },
+        ],
+        legend: { position: 'right' },
+      }),
+    );
+    const rightLegendRect = multiBarEl.querySelector('.vd-chart-legend rect');
+    expect(rightLegendRect).not.toBeNull();
+    expect(Number(rightLegendRect!.getAttribute('x'))).toBeGreaterThan(400);
   });
 });

@@ -8,7 +8,7 @@ publish surface for `@vanduo-oss/vd3-charts`.
 
 ### Requirement: package identity and exports contract
 
-The package MUST be `@vanduo-oss/vd3-charts`, version `1.1.1`, MIT-licensed, ESM
+The package MUST be `@vanduo-oss/vd3-charts`, version `1.2.0`, MIT-licensed, ESM
 (`type: "module"`), with `vue >=3.3.0` declared as a REQUIRED peer dependency
 (no `peerDependenciesMeta` optionality). It MUST set
 `publishConfig: { "access": "public" }`. The `exports` map SHALL declare `.`
@@ -41,7 +41,7 @@ The package MUST be `@vanduo-oss/vd3-charts`, version `1.1.1`, MIT-licensed, ESM
 
 - **GIVEN** the release-ready `package.json`
 - **WHEN** its publish-relevant fields are inspected
-- **THEN** `version` is `1.1.1` and `publishConfig.access` is `"public"`
+- **THEN** `version` is `1.2.0` and `publishConfig.access` is `"public"`
 
 ### Requirement: toolchain baseline
 
@@ -50,7 +50,7 @@ The repo MUST pin `packageManager: "pnpm@10.28.2"` and engines
 development/CI toolchain node (24) is pinned by `packageManager` and
 `.github/workflows/ci.yml`. It MUST define the scripts `build`, `clean`,
 `lint`, `format`, `format:check`, `stylelint`, `test`, `test:types`,
-`test:e2e`, `prepack`, and `release` (`pnpm run build && pnpm publish`).
+`test:e2e`, `prepack`, `release:check`, and `release` (`pnpm run build && pnpm publish`).
 
 #### Scenario: every defined script is green
 
@@ -78,7 +78,7 @@ in `pnpm-workspace.yaml`.
 
 ### Requirement: version constant equals package version
 
-`VD_CHARTS_VERSION` MUST equal `package.json` `version` and MUST be `'1.1.1'`.
+`VD_CHARTS_VERSION` MUST equal `package.json` `version` and MUST be `'1.2.0'`.
 An automated test MUST assert that sync. There is no separate
 `component-versions.json`.
 
@@ -86,7 +86,7 @@ An automated test MUST assert that sync. There is no separate
 
 - **GIVEN** `src/core.js` and `package.json`
 - **WHEN** `VD_CHARTS_VERSION` is compared against `package.json` `version`
-- **THEN** both are exactly `'1.1.1'`
+- **THEN** both are exactly `'1.2.0'`
 
 ### Requirement: CI pipeline
 
@@ -161,8 +161,7 @@ line, area, donut, and pie.
 The repo MUST ship `README.md`, `SKILL.md`, `CHANGELOG.md`, `CONTRIBUTING.md`,
 and the MIT `LICENSE`. Published files MUST stay limited to `dist`, `README.md`,
 `SKILL.md`, `CHANGELOG.md`, `LICENSE`, `recipes`, and `styles.d.ts`.
-`CHANGELOG.md` MUST carry a dated
-`## 1.1.1` entry. `SKILL.md` MUST carry Agent Skills frontmatter.
+`CHANGELOG.md` MUST carry dated `## 1.1.1` and `## 1.2.0` entries. `SKILL.md` MUST carry Agent Skills frontmatter.
 
 #### Scenario: npm pack ships the docs and excludes internals
 
@@ -182,3 +181,23 @@ skips `prepack`.
 - **GIVEN** `.npmrc` sets `ignore-scripts=true` and `dist/` is gitignored
 - **WHEN** the maintainer runs `pnpm run release`
 - **THEN** the full `build` runs before `pnpm publish`
+
+### Requirement: shipped artifact and engine-floor checks
+
+`release:check` MUST run the local quality gates without publishing. CI MUST
+run those gates on Node 24 and MUST also install and test the built package
+on Node 20.19. A pack check MUST reject unexpected tarball paths and MUST
+install the tarball in temporary ESM and CJS consumers.
+
+#### Scenario: release check does not publish
+
+- **GIVEN** a maintainer runs `pnpm run release:check`
+- **WHEN** the command finishes
+- **THEN** it MUST NOT call `pnpm publish` and it MUST fail when strict
+  OpenSpec or the pack consumer smoke fails
+
+#### Scenario: Node 20.19 consumes the build
+
+- **GIVEN** the package engines declare `node >=20.19.0`
+- **WHEN** CI runs
+- **THEN** a Node `20.19` job MUST install, build, and run the unit tests

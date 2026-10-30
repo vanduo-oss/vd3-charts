@@ -31,8 +31,10 @@ const CHART_PROPS = {
   color: { type: [String, Function], default: undefined },
   title: { type: String, default: undefined },
   description: { type: String, default: undefined },
+  ariaLabel: { type: String, default: undefined },
   width: { type: Number, default: undefined },
   height: { type: Number, default: 300 },
+  margin: { type: [Number, Object], default: undefined },
   innerRadiusRatio: { type: Number, default: undefined },
   theme: { type: Object, default: undefined },
   tooltip: { type: [Function, String, Boolean], default: undefined },
@@ -46,6 +48,7 @@ const CHART_PROPS = {
   // Reference lines: `[{ y?, x?, label?, color?, dash? }]`.
   annotations: { type: Array, default: undefined },
   // Axis range + ticks.
+  xScale: { type: String, default: undefined },
   xMin: { type: Number, default: undefined },
   xMax: { type: Number, default: undefined },
   yMin: { type: Number, default: undefined },
@@ -56,6 +59,18 @@ const CHART_PROPS = {
   yFormat: { type: Function, default: undefined },
   xAxis: { type: Object, default: undefined },
   yAxis: { type: Object, default: undefined },
+  // Mark geometry & styling.
+  barPadding: { type: Number, default: undefined },
+  stroke: { type: String, default: undefined },
+  strokeWidth: { type: Number, default: undefined },
+  points: { type: Boolean, default: undefined },
+  pointRadius: { type: Number, default: undefined },
+  pointFill: { type: String, default: undefined },
+  pointOpacity: { type: Number, default: undefined },
+  fill: { type: [Boolean, String], default: undefined },
+  fillOpacity: { type: Number, default: undefined },
+  centerLabel: { type: [Boolean, String], default: undefined },
+  centerSubLabel: { type: String, default: undefined },
   // Accessible data table: `true` (sr-only, default) / `false` / `'visible'`.
   dataTable: { type: [Boolean, String], default: undefined },
   // Override the SVG `aria-roledescription` (defaults to `${kind} chart`).
@@ -76,8 +91,10 @@ function optionsFrom(target, props, emit) {
     color: props.color,
     title: props.title,
     description: props.description,
+    ariaLabel: props.ariaLabel,
     width: props.width,
     height: props.height,
+    margin: props.margin,
     innerRadiusRatio: props.innerRadiusRatio,
     theme: props.theme,
     tooltip: props.tooltip,
@@ -86,6 +103,7 @@ function optionsFrom(target, props, emit) {
     legend: props.legend,
     dataLabels: props.dataLabels,
     annotations: props.annotations,
+    xScale: props.xScale,
     xMin: props.xMin,
     xMax: props.xMax,
     yMin: props.yMin,
@@ -96,6 +114,17 @@ function optionsFrom(target, props, emit) {
     yFormat: props.yFormat,
     xAxis: props.xAxis,
     yAxis: props.yAxis,
+    barPadding: props.barPadding,
+    stroke: props.stroke,
+    strokeWidth: props.strokeWidth,
+    points: props.points,
+    pointRadius: props.pointRadius,
+    pointFill: props.pointFill,
+    pointOpacity: props.pointOpacity,
+    fill: props.fill,
+    fillOpacity: props.fillOpacity,
+    centerLabel: props.centerLabel,
+    centerSubLabel: props.centerSubLabel,
     dataTable: props.dataTable,
     ariaRoleDescription: props.ariaRoleDescription,
     role: props.svgRole,
@@ -144,8 +173,10 @@ export const VdChart = defineComponent({
         props.color,
         props.title,
         props.description,
+        props.ariaLabel,
         props.width,
         props.height,
+        props.margin,
         props.innerRadiusRatio,
         props.theme,
         props.tooltip,
@@ -154,6 +185,7 @@ export const VdChart = defineComponent({
         props.legend,
         props.dataLabels,
         props.annotations,
+        props.xScale,
         props.xMin,
         props.xMax,
         props.yMin,
@@ -164,6 +196,17 @@ export const VdChart = defineComponent({
         props.yFormat,
         props.xAxis,
         props.yAxis,
+        props.barPadding,
+        props.stroke,
+        props.strokeWidth,
+        props.points,
+        props.pointRadius,
+        props.pointFill,
+        props.pointOpacity,
+        props.fill,
+        props.fillOpacity,
+        props.centerLabel,
+        props.centerSubLabel,
         props.dataTable,
         props.ariaRoleDescription,
         props.svgRole,
@@ -202,10 +245,19 @@ function typed(name, type) {
   return defineComponent({
     name,
     props: CHART_PROPS,
-    setup(props, { expose }) {
+    emits: ['point-click', 'bar-click', 'slice-click'],
+    setup(props, { emit, expose }) {
       const chart = ref(null);
       expose({ refresh: () => chart.value?.refresh() });
-      return () => h(VdChart, { ...props, type, ref: chart });
+      return () =>
+        h(VdChart, {
+          ...props,
+          type,
+          ref: chart,
+          onPointClick: (e) => emit('point-click', e),
+          onBarClick: (e) => emit('bar-click', e),
+          onSliceClick: (e) => emit('slice-click', e),
+        });
     },
   });
 }

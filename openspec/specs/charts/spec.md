@@ -6,16 +6,12 @@ framework-agnostic chart core, scales, and helpers on the package root.
 ## Requirements
 ### Requirement: charts subpath exports Vue wrappers alongside the core
 
-The package entry SHALL export the Vue wrapper family as the
-primary surface — `VdChart` plus the typed convenience wrappers `VdBarChart`,
-`VdLineChart`, `VdAreaChart`, `VdScatterChart`, `VdDonutChart`, `VdPieChart` —
-and SHALL re-export the framework-agnostic core alongside: the factories
-`BarChart`, `LineChart`, `AreaChart`, `ScatterChart`, `DonutChart`,
-`PieChart`; the scales `scaleLinear`, `scaleTime`, `scaleBand`, `scalePoint`,
-`scaleOrdinal`; the helpers `createAccessor`, `ticks`, `niceDomain`,
-`linePath`, `areaPath`, `arcPath`; `resolveTheme`; and `VD_CHARTS_VERSION`.
-The entry MUST use named exports only (no `export default`), and the core
-MUST NOT import `vue`.
+The package entry SHALL export the Vue wrappers (`VdChart` and typed
+`VdBarChart`..`VdPieChart`) and re-export the framework-agnostic core factories
+(`BarChart`..`PieChart`), scales (`scaleLinear`, `scaleTime`, `scaleBand`,
+`scalePoint`, `scaleOrdinal`), helpers (`createAccessor`, `ticks`, `niceDomain`,
+`linePath`, `areaPath`, `arcPath`), `resolveTheme`, and `VD_CHARTS_VERSION`.
+Named exports only; the core MUST NOT import `vue`.
 
 #### Scenario: consumer imports wrapper and core from one subpath
 
@@ -36,12 +32,11 @@ MUST NOT import `vue`.
 ### Requirement: charts vanilla layer is excised
 
 The charts module SHALL NOT export `init`, `destroy` (module-level),
-`destroyAll`, `reinit`, `instances`, `optionsFromElement`, the `VanduoCharts`
-namespace object, or the `__testing` bag, and importing any package file
-MUST NOT read or write `window.VanduoCharts`, call `window.Vanduo.register`,
-or scan the DOM for `data-vd-chart` attributes. The path/scale helpers that
-`__testing` used to alias (`linePath`, `areaPath`, `arcPath`, `niceDomain`,
-`ticks`) remain available as direct named exports.
+`destroyAll`, `reinit`, `instances`, `optionsFromElement`, `VanduoCharts`, or
+`__testing`. Importing any package file MUST NOT read/write
+`window.VanduoCharts`, call `window.Vanduo.register`, or scan for
+`data-vd-chart`. Path and scale helpers (`linePath`, `areaPath`, `arcPath`,
+`niceDomain`, `ticks`) remain direct named exports.
 
 #### Scenario: importing the module registers no globals
 
@@ -58,19 +53,18 @@ or scan the DOM for `data-vd-chart` attributes. The path/scale helpers that
 - **THEN** the import succeeds (guarded helpers like `resolveTheme` return
   fallback values instead of touching the DOM)
 
-### Requirement: charts version constant is 1.1.1
+### Requirement: charts version constant is 1.2.0
 
-`VD_CHARTS_VERSION` SHALL be `'1.1.1'` (reset from the old line's `'0.2.0'` to
-`'1.0.0'` at bundle launch, patch-bumped to `'1.0.1'` for the bar-baseline-clamp
-fix, minor-bumped to `'1.1.0'` for the additive wrapper mark-click emits, then
-patch-bumped to `'1.1.1'` for pie defaults and update/focus fixes)
+`VD_CHARTS_VERSION` SHALL be `'1.2.0'` (continuing the `1.0.0` → `1.1.0` →
+`1.1.1` → `1.2.0` lineage for Vue wrapper prop parity, CSS color strings, polar
+`color`, `legend.position`, automatic theme reactivity, and release QA gates)
 and MUST equal `package.json` `version`.
 
 #### Scenario: version constant matches the manifest
 
 - **GIVEN** the charts core and `package.json`
 - **WHEN** `VD_CHARTS_VERSION` is compared against `package.json` `version`
-- **THEN** both are exactly `'1.1.1'`
+- **THEN** both are exactly `'1.2.0'`
 
 ### Requirement: charts stylesheet ships as a css subpath
 
@@ -87,18 +81,13 @@ and be published as `dist/vd3-charts.css`, resolvable via the
 
 ### Requirement: charts unit and wrapper test coverage
 
-The repo SHALL provide vitest coverage for the charts core and wrapper:
-`createAccessor` (field, nested path, callback), the scales (`scaleLinear`
-including `ticks`, `scaleBand` including `bandwidth`, `scalePoint`,
-`scaleTime`, `scaleOrdinal` including cycling for unknown keys),
-`niceDomain`/`ticks`, the path helpers (`linePath`, `areaPath` closing to the
-baseline, `arcPath` donut vs pie arcs), factory option handling (defaults,
-`innerRadiusRatio` presets, invalid-row filtering), and a `VdChart` mount
-spec (mount creates the underlying chart in the container, prop change
-re-renders, unmount destroys it). The suite MUST assert
-`VD_CHARTS_VERSION === '1.1.1'` and that it equals `package.json` `version`. Scale/path/accessor specs SHALL run in a plain
-Node environment (no DOM) to prove the primitives are runtime-agnostic;
-factory rendering and mount specs run under jsdom.
+The repo SHALL provide Vitest coverage for `createAccessor`, scales
+(`scaleLinear`, `scaleBand`, `scalePoint`, `scaleTime`, `scaleOrdinal`),
+`niceDomain`/`ticks`, path helpers (`linePath`, `areaPath`, `arcPath`), factory
+options (`innerRadiusRatio`, row filtering), and `VdChart` mount/update/unmount.
+The suite MUST assert `VD_CHARTS_VERSION === '1.2.0'` and matches `package.json`
+`version`. Scale/path/accessor specs SHALL run in Node; factory and mount specs
+run under jsdom.
 
 #### Scenario: primitives pass without a DOM
 
@@ -120,18 +109,15 @@ factory rendering and mount specs run under jsdom.
 
 - **GIVEN** the charts unit suite
 - **WHEN** it compares `VD_CHARTS_VERSION` with `package.json` `version`
-- **THEN** the test fails unless both are exactly `'1.1.1'`
+- **THEN** the test fails unless both are exactly `'1.2.0'`
 
 ### Requirement: charts real-browser smoke coverage
 
-The Playwright smoke suite SHALL include a charts spec running against a
-harness page that imports the BUILT `dist/index.js` (ESM, with an
-import map resolving the external `vue` specifier), adapted from the old
-repo's `charts-harness.html`. It MUST assert real rendering for at least: a
-bar chart (bars present, light tooltip on hover, click callback), a line and
-area chart (non-empty path `d` attributes; area path closed with `Z`), and
-donut vs pie inner-radius behavior (donut slice paths use two arc commands;
-pie slice paths radiate from the chart center with a single outer arc).
+The Playwright smoke suite SHALL run against a harness page that imports the
+built `dist/index.js` ESM entry (with `vue` resolved via an import map). It MUST
+assert real rendering for bar (marks, hover tooltip, click callback), line and
+area (non-empty `d` attributes, area closed with `Z`), and donut vs pie
+inner-radius arc geometry.
 
 #### Scenario: built charts entry renders in a real browser
 
@@ -156,7 +142,11 @@ pie slice paths radiate from the chart center with a single outer arc).
 
 ### Requirement: charts wrapper forwards mark clicks as Vue emits
 
-The `VdChart` wrapper — and the typed convenience components `VdBarChart`, `VdLineChart`, `VdAreaChart`, `VdScatterChart`, `VdDonutChart`, `VdPieChart` — SHALL forward the framework-agnostic core's mark-click callbacks as an idiomatic kebab-case Vue emit family: `bar-click`, `point-click`, and `slice-click`. Each event MUST carry the core `ClickEvent` payload (`{ event, datum, index }`) unchanged. The wrapper SHALL pass `onBarClick` / `onPointClick` / `onSliceClick` into the core options as `(e) => emit('<name>', e)`; because the core fires only the callback relevant to the rendered chart type, all three MAY be passed unconditionally. The emits MUST be typed by a `VdChartEmits` interface exported from the package entry (payload `ClickEvent`). The framework-agnostic core (`core.js`) MUST NOT change — its `attachClick` wiring and `ClickEvent` shape already exist.
+`VdChart` and the typed convenience wrappers SHALL forward the core's mark-click
+callbacks as kebab-case Vue emits (`bar-click`, `point-click`, `slice-click`),
+each carrying the core `ClickEvent` payload (`{ event, datum, index }`)
+unchanged. The emits MUST be typed by `VdChartEmits` exported from the package
+entry.
 
 #### Scenario: clicking a bar emits bar-click with the ClickEvent
 
@@ -249,17 +239,11 @@ rendered as a text element near the line.
 
 ### Requirement: WAI-ARIA Graphics Module semantics and structure
 
-The chart SVG shell SHALL provide `role="graphics-document document"` and
-`aria-roledescription="[kind] chart"` (or an explicit `ariaRoleDescription`).
-An explicit `role` option SHALL override the shell's default graphics role; when
-unset the default is unchanged. The Vue wrapper MUST expose this as `svgRole`
-so the standard `role` attribute continues to fall through to the wrapper root.
-Mark group containers SHALL provide
-`role="graphics-object"` and an appropriate `aria-roledescription` (e.g.
-`'data points'`, `'line series'`, `'grouped bars'`, `'pie slices'`). Individual
-data marks (bars, points, slices) SHALL provide `role="graphics-symbol"` and an
-`aria-roledescription` (`'bar'`, `'data point'`, or `'slice'`). Non-data
-decorative elements (such as Cartesian axis lines and grid lines) SHALL have
+The chart SVG shell SHALL provide `role="graphics-document document"` (or an
+explicit `role` / Vue `svgRole`) and `aria-roledescription="[kind] chart"` (or
+`ariaRoleDescription`). Mark groups SHALL provide `role="graphics-object"` and
+individual marks SHALL provide `role="graphics-symbol"` with an appropriate
+`aria-roledescription`. Decorative axes and grid lines SHALL have
 `aria-hidden="true"`.
 
 #### Scenario: graphics roles present on chart elements
@@ -287,14 +271,11 @@ decorative elements (such as Cartesian axis lines and grid lines) SHALL have
 
 ### Requirement: keyboard arrow navigation across interactive chart marks
 
-When an interactive chart mark (an element with `tabindex="0"`) receives focus,
-pressing `ArrowRight` or `ArrowDown` SHALL move keyboard focus to the next
-mark in the chart, wrapping around to the first mark from the end. Pressing
-`ArrowLeft` or `ArrowUp` SHALL move focus to the previous mark, wrapping around
-to the last mark from the start. Pressing `Home` or `End` SHALL move focus
-directly to the first or last mark. Moving focus to a mark SHALL update the
-active tooltip to display that mark's data. Pressing `Escape` SHALL blur the
-focused mark and dismiss the tooltip.
+When an interactive chart mark (`tabindex="0"`) has focus, `ArrowRight`/`ArrowDown`
+SHALL move focus to the next mark (wrapping around), `ArrowLeft`/`ArrowUp` to
+the previous mark, and `Home`/`End` to the first or last mark. Moving focus
+SHALL update the active tooltip, and `Escape` SHALL blur the mark and dismiss
+the tooltip.
 
 #### Scenario: roving arrow navigation and tooltip activation
 
@@ -305,19 +286,12 @@ focused mark and dismiss the tooltip.
 
 ### Requirement: accessible HTML data table fallback for screen readers
 
-Every rendered chart SHALL generate an accessible HTML `<table>` summarizing its
-data (`<caption>`, `<thead>` with `<th scope="col">`, and `<tbody>` with
-`<th scope="row">` and `<td>`), fulfilling WCAG 1.1.1 Level A (techniques
-G73/G74). The table SHALL be visually hidden by default using the
-`.vd-chart-sr-only` class so that screen readers can navigate the data table
-without altering visual page layout. Setting `options.dataTable: false` MUST
-suppress table generation, and setting `options.dataTable: 'visible'` MUST
-render the table visibly without `.vd-chart-sr-only`. Destroying the chart
-instance MUST remove the data table from the target. For multi-series line/area
-charts, table cells MUST match each row's x value using the same normalized key
-as the x scale (timestamp for time, number for linear, string for point), so
-per-series `Date` / object x values compare by value rather than by reference
-and every series column is filled.
+Every rendered chart SHALL generate a `.vd-chart-sr-only` HTML `<table>`
+(`<caption>`, `<thead>`, `<tbody>`) summarizing its data (WCAG 1.1.1). Setting
+`dataTable: false` MUST suppress it, and `dataTable: 'visible'` MUST render it
+visibly. Destroying the chart MUST remove the table. Multi-series line/area
+tables MUST match each row's x value by normalized scale key so per-series
+`Date`/object x values populate every column.
 
 #### Scenario: default screen-reader data table generation
 
@@ -337,13 +311,11 @@ and every series column is filled.
 
 ### Requirement: responsive sizing excludes the visible data table
 
-When no explicit `height` is supplied and `responsive` is not disabled, the
-chart's measured height SHALL exclude the layout contribution of a visible data
-table (`offsetHeight` plus vertical margins), so appending or growing the table
-does not change the chart area. The `ResizeObserver` path MUST compare the
-chart-area size (not raw `clientHeight`) so table-only growth does not trigger a
-re-render, while a genuine container change still does. Visually hidden
-(`.vd-chart-sr-only`) tables MUST contribute zero.
+When no explicit `height` is supplied and `responsive` is enabled, the chart's
+measured height SHALL exclude the layout height of a visible data table, and
+`ResizeObserver` MUST compare the chart-area size so table-only growth does not
+trigger a re-render. Visually hidden (`.vd-chart-sr-only`) tables MUST
+contribute zero height.
 
 #### Scenario: table growth does not re-render the chart
 
@@ -356,3 +328,52 @@ re-render, while a genuine container change still does. Visually hidden
 - **GIVEN** the same responsive chart
 - **WHEN** the container height changes independently of the table
 - **THEN** the chart re-renders once with the new size
+
+### Requirement: Vue wrapper forwards full core styling and layout options
+
+`VdChart` and the typed convenience wrappers (`VdBarChart`, `VdLineChart`,
+`VdAreaChart`, `VdScatterChart`, `VdDonutChart`, `VdPieChart`) SHALL declare
+and forward the core styling, layout, and scale options (`ariaLabel`, `margin`,
+`xScale`, `barPadding`, `stroke`, `strokeWidth`, `points`, `pointRadius`,
+`pointFill`, `pointOpacity`, `fill`, `fillOpacity`, `centerLabel`,
+`centerSubLabel`) and reactive changes to any of these props MUST update the
+underlying chart instance in place.
+
+#### Scenario: Vue wrapper forwards mark styling and donut center props
+
+- **GIVEN** a mounted `VdLineChart` or `VdDonutChart`
+- **WHEN** `stroke`, `strokeWidth`, `points: false`, `centerLabel`, or
+  `centerSubLabel` is passed or updated
+- **THEN** the rendered SVG marks and center text reflect the prop values
+
+### Requirement: color option supports CSS color strings, field names, and callbacks across Cartesian and polar charts
+
+When `options.color` is a CSS color string (`#...`, `rgb(...)`, `hsl(...)`,
+`oklch(...)`, `var(...)`), the chart SHALL apply that color to marks instead of
+treating the string as a data property key. When `options.color` is a field
+name or callback `(row) => color`, Cartesian (`BarChart`, `LineChart`,
+`AreaChart`, `ScatterChart`) and polar (`DonutChart`, `PieChart`) charts SHALL
+resolve mark colors accordingly.
+
+#### Scenario: CSS color string and polar slice color
+
+- **GIVEN** a `BarChart` or `DonutChart` with `color: '#40c057'` or a per-slice
+  callback
+- **WHEN** the chart renders
+- **THEN** the rendered bars or slices use the resolved CSS color
+
+### Requirement: legend position and automatic theme reactivity
+
+`options.legend` SHALL honor `{ position: 'top' | 'right' }` across Cartesian
+and polar charts. Every `ChartInstance` SHALL observe theme attribute mutations
+(`data-theme`, `data-primary`, `data-palette`, `data-neutral`, `class`, `style`)
+on `document.documentElement` and its target container, re-rendering when the
+resolved theme tokens change and disconnecting the observer on `destroy()`.
+
+#### Scenario: document theme change re-renders chart colors automatically
+
+- **GIVEN** a mounted chart instance and a CSS variable change on
+  `document.documentElement` or the chart target
+- **WHEN** `data-theme` or inline theme variables mutate
+- **THEN** the chart re-renders with the updated resolved theme without
+  requiring a manual `refresh()` call

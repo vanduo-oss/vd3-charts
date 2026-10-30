@@ -98,4 +98,18 @@ describe('chart updates', () => {
     expect(wrapper.get('rect.vd-chart-bar').attributes('fill')).toBe('#123456');
     wrapper.unmount();
   });
+
+  it('automatically re-renders when theme attributes or CSS variables mutate on documentElement or target', async () => {
+    const instance = chart();
+    const host = instance.target as HTMLElement;
+    host.style.setProperty('--vd-chart-1', '#654321');
+    await Promise.resolve();
+    expect(host.querySelector('rect.vd-chart-bar')?.getAttribute('fill')).toBe('#654321');
+
+    document.documentElement.setAttribute('data-theme', 'dark');
+    host.style.setProperty('--vd-chart-1', '#abcdef');
+    await Promise.resolve();
+    expect(host.querySelector('rect.vd-chart-bar')?.getAttribute('fill')).toBe('#abcdef');
+    document.documentElement.removeAttribute('data-theme');
+  });
 });
