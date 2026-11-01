@@ -4,7 +4,7 @@
 // keyboard interaction, and tooltip content. These are all documented API
 // features with zero prior test coverage.
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   AreaChart,
@@ -39,6 +39,215 @@ const BAR_ROWS = [
   { cat: 'b', val: 7 },
   { cat: 'c', val: 5 },
 ];
+
+// ---------------------------------------------------------------------------
+// Option/renderer parity — every documented option must actually reach the DOM
+// ---------------------------------------------------------------------------
+
+describe('option and renderer parity', () => {
+  it('centerLabel: true renders the computed total, not the literal "true"', () => {
+    const el = target();
+    track(
+      DonutChart({
+        target: el,
+        data: [
+          { label: 'a', value: 3 },
+          { label: 'b', value: 7 },
+        ],
+        label: 'label',
+        value: 'value',
+        centerLabel: true,
+      }),
+    );
+    const texts = Array.from(el.querySelectorAll('text')).map((node) => node.textContent);
+    expect(texts).not.toContain('true');
+    expect(texts).toContain('10');
+  });
+
+  it('centerLabel: custom string wins; false hides the label', () => {
+    const custom = target();
+    track(
+      DonutChart({
+        target: custom,
+        data: [{ label: 'a', value: 4 }],
+        label: 'label',
+        value: 'value',
+        centerLabel: 'Revenue',
+      }),
+    );
+    expect(Array.from(custom.querySelectorAll('text')).map((n) => n.textContent)).toContain(
+      'Revenue',
+    );
+
+    const hidden = target();
+    track(
+      DonutChart({
+        target: hidden,
+        data: [{ label: 'a', value: 4 }],
+        label: 'label',
+        value: 'value',
+        centerLabel: false,
+      }),
+    );
+    expect(Array.from(hidden.querySelectorAll('text')).map((n) => n.textContent)).not.toContain(
+      'total',
+    );
+  });
+
+  it('xScale: "band" spreads points across a band instead of falling back to point', () => {
+    const rows = [
+      { k: 'a', v: 1 },
+      { k: 'b', v: 2 },
+      { k: 'c', v: 3 },
+    ];
+    const bandEl = target();
+    track(LineChart({ target: bandEl, data: rows, x: 'k', y: 'v', xScale: 'band' }));
+    const pointEl = target();
+    track(LineChart({ target: pointEl, data: rows, x: 'k', y: 'v', xScale: 'point' }));
+
+    const bandPath = bandEl.querySelector('path.vd-chart-line-path')?.getAttribute('d') ?? '';
+    const pointPath = pointEl.querySelector('path.vd-chart-line-path')?.getAttribute('d') ?? '';
+    expect(bandPath).not.toBe('');
+    expect(pointPath).not.toBe('');
+    // Band insets the series toward the plot edges; point centers the outer
+    // categories on padding instead. The two paths must not be identical.
+    expect(bandPath).not.toBe(pointPath);
+  });
+
+  it('multi-series area honors fill: false and a custom fill color', () => {
+    const hidden = target();
+    track(
+      AreaChart({
+        target: hidden,
+        data: [
+          { k: 'a', one: 1, two: 2 },
+          { k: 'b', one: 2, two: 3 },
+        ],
+        x: 'k',
+        series: [
+          { name: 'one', y: 'one' },
+          { name: 'two', y: 'two' },
+        ],
+        fill: false,
+      }),
+    );
+    expect(hidden.querySelectorAll('path.vd-chart-area-path').length).toBe(0);
+
+    const custom = target();
+    track(
+      AreaChart({
+        target: custom,
+        data: [
+          { k: 'a', one: 1, two: 2 },
+          { k: 'b', one: 2, two: 3 },
+        ],
+        x: 'k',
+        series: [
+          { name: 'one', y: 'one' },
+          { name: 'two', y: 'two' },
+        ],
+        fill: '#123456',
+      }),
+    );
+    const fills = Array.from(custom.querySelectorAll('path.vd-chart-area-path')).map((p) =>
+      p.getAttribute('fill'),
+    );
+    expect(fills).toHaveLength(2);
+    fills.forEach((fill) => expect(fill).toBe('#123456'));
+  });
+
+  it('a right legend is given its own gutter instead of overlapping the marks', () => {
+    const rows = [
+      { k: 'a', one: 1, two: 2 },
+      { k: 'b', one: 2, two: 3 },
+      { k: 'c', one: 3, two: 1 },
+    ];
+    const series = [
+      { name: 'one', y: 'one' },
+      { name: 'two', y: 'two' },
+    ];
+
+    const markXs = (el: HTMLElement): number[] =>
+      Array.from(el.querySelectorAll('path.vd-chart-line-path')).flatMap((path) => {
+        const numbers = (path.getAttribute('d') ?? '').match(/-?[\d.]+/g)?.map(Number) ?? [];
+        return numbers.filter((_, index) => index % 2 === 0);
+      });
+
+    const withRight = target();
+    track(
+      LineChart({ target: withRight, data: rows, x: 'k', series, legend: { position: 'right' } }),
+    );
+    const withTop = target();
+    track(LineChart({ target: withTop, data: rows, x: 'k', series, legend: { position: 'top' } }));
+
+    // A right legend must take width away from the plot, so the marks shrink...
+    const rightMax = Math.max(...markXs(withRight));
+    const topMax = Math.max(...markXs(withTop));
+    expect(rightMax).toBeLessThan(topMax);
+
+    // ...and the legend itself must sit clear of the rightmost mark.
+    const legendLabels = Array.from(withRight.querySelectorAll('g.vd-chart-legend text'));
+    expect(legendLabels).toHaveLength(2);
+    legendLabels.forEach((label) => {
+      expect(parseFloat(label.getAttribute('x') ?? '0')).toBeGreaterThan(rightMax);
+    });
+  });
+
+  it('without CSS.supports a misspelled field is not mistaken for a color', () => {
+    const original = globalThis.CSS;
+    // Simulate an environment with no CSS.supports (older SSR / minimal jsdom).
+    vi.stubGlobal('CSS', undefined);
+    try {
+      const el = target();
+      track(
+        BarChart({
+          target: el,
+          data: [
+            { cat: 'a', val: 1, group: 'x' },
+            { cat: 'b', val: 2, group: 'y' },
+          ],
+          x: 'cat',
+          y: 'val',
+          color: 'gruop',
+        }),
+      );
+      const fills = Array.from(el.querySelectorAll('rect.vd-chart-bar')).map((r) =>
+        r.getAttribute('fill'),
+      );
+      expect(fills.length).toBeGreaterThan(0);
+      fills.forEach((fill) => expect(fill).not.toBe('gruop'));
+    } finally {
+      vi.unstubAllGlobals();
+      if (original !== undefined) vi.stubGlobal('CSS', original);
+    }
+    vi.unstubAllGlobals();
+  });
+
+  it('without CSS.supports a real CSS color keyword is still accepted', () => {
+    vi.stubGlobal('CSS', undefined);
+    try {
+      const el = target();
+      track(
+        BarChart({
+          target: el,
+          data: [
+            { cat: 'a', val: 1, group: 'x' },
+            { cat: 'b', val: 2, group: 'y' },
+          ],
+          x: 'cat',
+          y: 'val',
+          color: 'rebeccapurple',
+        }),
+      );
+      const fills = Array.from(el.querySelectorAll('rect.vd-chart-bar')).map((r) =>
+        r.getAttribute('fill'),
+      );
+      expect(new Set(fills)).toEqual(new Set(['rebeccapurple']));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Annotations

@@ -108,7 +108,7 @@ export interface VdChartProps {
   fill?: boolean | string;
   /** Area fill opacity. */
   fillOpacity?: number;
-  /** Donut center label (`false` to hide, or custom string). */
+  /** Donut center label: `false` to hide, or a custom string. `true` shows the computed total. */
   centerLabel?: boolean | string;
   /** Donut center subtitle label. */
   centerSubLabel?: string;

@@ -35,6 +35,36 @@ All notable changes to `@vanduo-oss/vd3-charts` are documented here.
 - **Typed convenience wrapper emits** — `VdBarChart`, `VdLineChart`,
   `VdAreaChart`, `VdScatterChart`, `VdDonutChart`, and `VdPieChart` explicitly
   declare and forward `bar-click`, `point-click`, and `slice-click`.
+- **`centerLabel: true` renders the total** — passing `true` previously fell
+  through to `String(true)` and drew the literal text `true` in the donut
+  center. `true` now means "show the computed total"; a string still overrides
+  it and `false` still hides it. `centerLabel` is typed `string | true | false`
+  to match.
+- **`xScale: 'band'` is implemented** — the option advertised `'band'` but
+  `inferXScale` fell through to the point scale, so line/area/scatter silently
+  ignored it. `'band'` now builds a real band scale. Bar charts continue to
+  always use a band scale, and the declaration says so.
+- **Multi-series area honors `fill`** — `fill: false` hid the fill on
+  single-series area charts but not on multi-series ones, which always used the
+  series color; a string fill was likewise ignored. Both paths now agree.
+- **Right-side legends reserve their own space** — Cartesian charts drew a
+  `legend: { position: 'right' }` legend inside the plot area, on top of the
+  marks near the right edge. The plot now gives up a gutter for it, matching
+  what donut and pie already did. Narrow charts fall back to the top legend
+  rather than squeezing the marks.
+- **Theme observer no longer leaks or thrashes** — the observer now disconnects
+  when the chart's target is detached, and coalesces mutations into one theme
+  resolution per animation frame instead of forcing a style recalc per
+  `<html>` class or style change.
+- **Color detection no longer depends on the environment** — without
+  `CSS.supports`, any non-empty string was treated as a color whenever rows
+  existed, so a misspelled field name silently became an invalid fill. Fallback
+  detection now uses the CSS named-color list, and field lookup checks
+  own-properties instead of inherited ones.
+- **`pack-smoke` always cleans up** — a missing tarball filename threw a
+  `TypeError` outside any `try`, skipping cleanup and leaking temp directories.
+  Both the pack result and the filename are now guarded and routed through
+  `fail()`.
 
 ## 1.1.1 — 2026-09-17
 

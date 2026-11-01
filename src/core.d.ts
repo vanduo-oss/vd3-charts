@@ -119,6 +119,7 @@ export interface CartesianChartOptions<T = Row> extends BaseChartOptions<T> {
   x?: Accessor<T>;
   y?: Accessor<T, number>;
   color?: ColorOption<T>;
+  /** Only meaningful for line/area/scatter; bar charts always use a band scale. */
   xScale?: 'linear' | 'time' | 'point' | 'band';
   xFormat?: (value: unknown) => string;
   yFormat?: (value: number) => string;
@@ -155,6 +156,7 @@ export interface LineChartOptions<T = Row> extends CartesianChartOptions<T> {
 }
 
 export interface AreaChartOptions<T = Row> extends LineChartOptions<T> {
+  /** Fill color (`false` to hide the fill) — honored by both single- and multi-series area. */
   fill?: boolean | string;
   fillOpacity?: number;
 }
@@ -170,7 +172,7 @@ export interface PieChartOptions<T = Row> extends BaseChartOptions<T> {
   value?: Accessor<T, number>;
   color?: ColorOption<T>;
   innerRadiusRatio?: number;
-  centerLabel?: string | false;
+  centerLabel?: string | true | false;
   centerSubLabel?: string;
   onSliceClick?: (e: ClickEvent<T>) => void;
 }

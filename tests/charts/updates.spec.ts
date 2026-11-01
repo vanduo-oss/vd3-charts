@@ -28,6 +28,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Waits one animation frame, which is when the coalesced theme check runs. */
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 describe('chart updates', () => {
   it('starts and stops observing when responsive changes', () => {
     const observe = vi.fn();
@@ -99,17 +104,69 @@ describe('chart updates', () => {
     wrapper.unmount();
   });
 
-  it('automatically re-renders when theme attributes or CSS variables mutate on documentElement or target', async () => {
+  it('re-renders when a --vd-* token mutates on the host element', async () => {
     const instance = chart();
     const host = instance.target as HTMLElement;
     host.style.setProperty('--vd-chart-1', '#654321');
-    await Promise.resolve();
+    await nextFrame();
     expect(host.querySelector('rect.vd-chart-bar')?.getAttribute('fill')).toBe('#654321');
+  });
 
+  it('re-renders when a --vd-* token mutates on documentElement only', async () => {
+    const instance = chart();
+    const host = instance.target as HTMLElement;
+    const root = document.documentElement;
+    const before = host.querySelector('rect.vd-chart-bar')?.getAttribute('fill');
+    // Nothing is written to the host here: the only mutation is on <html>, so
+    // this fails if the documentElement observation is removed.
+    root.style.setProperty('--vd-chart-1', '#abcdef');
+    try {
+      await nextFrame();
+      const after = host.querySelector('rect.vd-chart-bar')?.getAttribute('fill');
+      expect(after).toBe('#abcdef');
+      expect(after).not.toBe(before);
+    } finally {
+      root.style.removeProperty('--vd-chart-1');
+    }
+  });
+
+  it('schedules at most one theme flush per frame across separate mutations', async () => {
+    const scheduled: FrameRequestCallback[] = [];
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      scheduled.push(callback);
+      return scheduled.length;
+    });
+
+    const instance = chart();
+    const root = document.documentElement;
+    root.style.setProperty('--vd-chart-1', '#111111');
+    // A macrotask boundary guarantees the queued observer microtask is delivered.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    root.style.setProperty('--vd-chart-1', '#222222');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    try {
+      // Two delivered mutations, but only one frame is ever queued because the
+      // second callback sees a pending flush and coalesces into it.
+      expect(scheduled.length).toBe(1);
+      scheduled.forEach((callback) => callback(0));
+      expect(instance.target.querySelector('rect.vd-chart-bar')?.getAttribute('fill')).toBe(
+        '#222222',
+      );
+    } finally {
+      root.style.removeProperty('--vd-chart-1');
+    }
+  });
+
+  it('disconnects the theme observer once the target is detached', async () => {
+    const instance = chart();
+    const host = instance.target as HTMLElement;
+    instance.destroy();
+    // A destroyed chart must not react to further root mutations.
+    const before = host.innerHTML;
     document.documentElement.setAttribute('data-theme', 'dark');
-    host.style.setProperty('--vd-chart-1', '#abcdef');
-    await Promise.resolve();
-    expect(host.querySelector('rect.vd-chart-bar')?.getAttribute('fill')).toBe('#abcdef');
+    await nextFrame();
+    expect(host.innerHTML).toBe(before);
     document.documentElement.removeAttribute('data-theme');
   });
 });

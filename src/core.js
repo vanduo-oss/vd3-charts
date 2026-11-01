@@ -621,12 +621,33 @@ function renderDataTable(instance, tableData) {
   target.appendChild(table);
 }
 
+/**
+ * True when this chart draws its legend down the right edge of the plot, in
+ * which case the plot must give up that width or the marks slide underneath it.
+ */
+function usesRightLegend(options) {
+  return Boolean(
+    options.legend && typeof options.legend === 'object' && options.legend.position === 'right',
+  );
+}
+
+/** Width reserved for a right-edge legend, matching the donut's reservation. */
+const RIGHT_LEGEND_WIDTH = 128;
+
+/** Below this plot width a right legend is moved to the top instead of squeezing the marks. */
+const RIGHT_LEGEND_MIN_WIDTH = 520;
+
 function createSvgShell(instance) {
   const { target, options } = instance;
   const size = measureTarget(target, options);
   const theme = resolveTheme(target, options.theme);
   const margin = normalizeMargin(options.margin, options.polar ? POLAR_MARGIN : DEFAULT_MARGIN);
-  const plot = getPlotBox(size.width, size.height, margin);
+  const reserveRight =
+    !options.polar && usesRightLegend(options) && size.width >= RIGHT_LEGEND_MIN_WIDTH;
+  const plot = reserveRight
+    ? getPlotBox(size.width, size.height, { ...margin, right: margin.right + RIGHT_LEGEND_WIDTH })
+    : getPlotBox(size.width, size.height, margin);
+  plot.legendGutter = reserveRight ? RIGHT_LEGEND_WIDTH : 0;
 
   target.innerHTML = '';
   target.classList.add('vd-chart-root', `vd-chart-${instance.kind}`);
@@ -852,6 +873,17 @@ function inferXScale(rows, plot, options) {
   }
 
   const domain = unique(values).map(String);
+  if (explicitType === 'band') {
+    const scale = scaleBand({ domain, range: [plot.left, plot.right], padding: 0.5 });
+    return {
+      scale,
+      values: domain,
+      ticks: domain,
+      type: 'band',
+      mapValue: (value) => String(value),
+      bandwidth: scale.bandwidth(),
+    };
+  }
   return {
     scale: scalePoint({ domain, range: [plot.left, plot.right], padding: 0.5 }),
     values: domain,
@@ -859,6 +891,41 @@ function inferXScale(rows, plot, options) {
     type: 'point',
     mapValue: (value) => String(value),
   };
+}
+
+/** CSS named colors, used only when `CSS.supports` is unavailable (older SSR/jsdom). */
+const NAMED_COLORS = new Set(
+  (
+    'aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue ' +
+    'blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk ' +
+    'crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki ' +
+    'darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen ' +
+    'darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue ' +
+    'dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite ' +
+    'gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki ' +
+    'lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan ' +
+    'lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen ' +
+    'lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen ' +
+    'magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen ' +
+    'mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream ' +
+    'mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid ' +
+    'palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum ' +
+    'powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown ' +
+    'seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen ' +
+    'steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow ' +
+    'yellowgreen transparent currentcolor'
+  ).split(' '),
+);
+
+function hasOwnPathValue(row, path) {
+  if (row == null || typeof row !== 'object') return false;
+  let cursor = row;
+  for (const part of String(path).split('.')) {
+    if (cursor == null || typeof cursor !== 'object') return false;
+    if (!Object.prototype.hasOwnProperty.call(cursor, part)) return false;
+    cursor = cursor[part];
+  }
+  return true;
 }
 
 function isCssColorString(value, rows = []) {
@@ -871,13 +938,16 @@ function isCssColorString(value, rows = []) {
   ) {
     return true;
   }
-  if (rows.length && rows.some((row) => readPathValue(row.raw ?? row, trimmed) !== undefined)) {
+  if (rows.length && rows.some((row) => hasOwnPathValue(row.raw ?? row, trimmed))) {
     return false;
   }
   if (typeof CSS !== 'undefined' && typeof CSS.supports === 'function') {
     return CSS.supports('color', trimmed);
   }
-  return rows.length > 0;
+  // Without CSS.supports there is no way to tell a bare color keyword (`red`,
+  // `rebeccapurple`) from a field name. Prefer the documented keyword list so a
+  // misspelled field never silently becomes an invalid fill.
+  return NAMED_COLORS.has(trimmed.toLowerCase());
 }
 
 function getColorScale(rows, colorOption, theme) {
@@ -1001,14 +1071,17 @@ function renderTopLegend(svg, items, theme, plot) {
 
 function renderCartesianLegend(svg, items, options, theme, plot) {
   if (!items.length) return;
-  if (options.legend && typeof options.legend === 'object' && options.legend.position === 'right') {
-    const shown = items.slice(0, 8);
-    const maxLen = Math.max(...shown.map((item) => String(item.label).length), 4);
-    const x = Math.max(plot.left, plot.right - (20 + maxLen * 6.5));
-    renderLegend(svg, shown, (_label, item) => item.color, theme, x, plot.top + 12);
+  if (plot.legendGutter) {
+    renderRightLegend(svg, items, theme, plot);
     return;
   }
   renderTopLegend(svg, items, theme, plot);
+}
+
+/** Draws the legend in the right-hand gutter that `createSvgShell` reserved for it. */
+function renderRightLegend(svg, items, theme, plot) {
+  const shown = items.slice(0, 8);
+  renderLegend(svg, shown, (_label, item) => item.color, theme, plot.right + 12, plot.top + 12);
 }
 
 function dataLabelConfig(options) {
@@ -1600,13 +1673,13 @@ function renderMultiLineChart(instance, mode) {
       }))
       .filter((point) => isFiniteNumber(point.x) && isFiniteNumber(point.y));
 
-    if (mode === 'area') {
+    if (mode === 'area' && options.fill !== false) {
       append(
         markGroup,
         svgEl('path', {
           class: 'vd-chart-area-path',
           d: areaPath(points, baseline),
-          fill: series.color || stroke,
+          fill: typeof options.fill === 'string' ? options.fill : series.color || stroke,
           opacity: options.fillOpacity ?? 0.18,
           stroke: 'none',
         }),
@@ -1965,7 +2038,9 @@ function renderDonutChart(instance) {
           'font-weight': 700,
           'text-anchor': 'middle',
         }),
-        options.centerLabel || formatNumber(total),
+        typeof options.centerLabel === 'string' && options.centerLabel
+          ? options.centerLabel
+          : formatNumber(total),
       ),
     );
     append(
@@ -2011,6 +2086,7 @@ class ChartInstance {
     this.renderer = renderer;
     this.resizeObserver = null;
     this.themeObserver = null;
+    this.themeFrame = null;
     this.destroyed = false;
     this.theme = null;
     this.size = null;
@@ -2099,10 +2175,27 @@ class ChartInstance {
       'style',
     ];
     this.themeObserver = new MutationObserver(() => {
-      if (this.destroyed || !this.target.isConnected) return;
-      const nextTheme = resolveTheme(this.target, this.options.theme);
-      if (JSON.stringify(nextTheme) === JSON.stringify(this.theme)) return;
-      this.render();
+      if (this.destroyed) return;
+      // A detached target can no longer resolve tokens against the document, so
+      // stop observing rather than waking up on every root mutation.
+      if (!this.target.isConnected) {
+        this.teardownThemeObserver();
+        return;
+      }
+      // Coalesce bursts (a class swap plus a style tweak in one frame) into a
+      // single theme resolution and re-render.
+      if (this.themeFrame != null) return;
+      const schedule =
+        typeof requestAnimationFrame === 'function'
+          ? requestAnimationFrame
+          : (callback) => setTimeout(callback, 16);
+      this.themeFrame = schedule(() => {
+        this.themeFrame = null;
+        if (this.destroyed || !this.target.isConnected) return;
+        const nextTheme = resolveTheme(this.target, this.options.theme);
+        if (JSON.stringify(nextTheme) === JSON.stringify(this.theme)) return;
+        this.render();
+      });
     });
     if (document.documentElement) {
       this.themeObserver.observe(document.documentElement, {
@@ -2114,6 +2207,14 @@ class ChartInstance {
       attributes: true,
       attributeFilter,
     });
+  }
+
+  teardownThemeObserver() {
+    if (this.themeObserver) {
+      this.themeObserver.disconnect();
+      this.themeObserver = null;
+    }
+    this.themeFrame = null;
   }
 
   ensureTooltip() {
@@ -2158,10 +2259,7 @@ class ChartInstance {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
-    if (this.themeObserver) {
-      this.themeObserver.disconnect();
-      this.themeObserver = null;
-    }
+    this.teardownThemeObserver();
     this.target.innerHTML = '';
     this.target.classList.remove('vd-chart-root', `vd-chart-${this.kind}`);
     this.destroyed = true;

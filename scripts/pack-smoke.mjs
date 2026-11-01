@@ -57,6 +57,10 @@ try {
   fail(error.stderr || error.message);
 }
 
+if (!packed || typeof packed !== 'object') {
+  fail('pnpm pack did not report a package manifest.');
+}
+
 const files = (packed.files || []).map((file) => String(file.path).replace(/^package\//, ''));
 const missing = required.filter((file) => !files.includes(file));
 if (missing.length) fail(`Packed tarball is missing: ${missing.join(', ')}`);
@@ -70,6 +74,7 @@ if (packed.version && packed.version !== manifest.version) {
 }
 
 const filename = packed.filename || files.find((file) => file.endsWith('.tgz'));
+if (!filename) fail('pnpm pack produced no tarball.');
 const tarball = path.isAbsolute(filename) ? filename : path.join(packDir, path.basename(filename));
 const consumer = mkdtempSync(path.join(tmpdir(), 'vd3-charts-consumer-'));
 temporaryDirectories.push(consumer);
