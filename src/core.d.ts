@@ -31,6 +31,8 @@ export interface AxisOptions {
   label?: string;
 }
 
+export type ChartMargin = number | { top?: number; right?: number; bottom?: number; left?: number };
+
 /** Context object passed to a function `tooltip`. */
 export interface TooltipContext<T = Row> {
   datum: T;
@@ -96,7 +98,7 @@ export interface BaseChartOptions<T = Row> {
   ariaLabel?: string;
   width?: number;
   height?: number;
-  margin?: number | { top?: number; right?: number; bottom?: number; left?: number };
+  margin?: ChartMargin;
   theme?: Partial<ChartTheme>;
   tooltip?: TooltipOption<T>;
   /** Re-render on container resize (default true). */
@@ -117,7 +119,8 @@ export interface CartesianChartOptions<T = Row> extends BaseChartOptions<T> {
   x?: Accessor<T>;
   y?: Accessor<T, number>;
   color?: ColorOption<T>;
-  xScale?: 'linear' | 'time' | 'point';
+  /** Only meaningful for line/area/scatter; bar charts always use a band scale. */
+  xScale?: 'linear' | 'time' | 'point' | 'band';
   xFormat?: (value: unknown) => string;
   yFormat?: (value: number) => string;
   xAxis?: AxisOptions;
@@ -153,20 +156,23 @@ export interface LineChartOptions<T = Row> extends CartesianChartOptions<T> {
 }
 
 export interface AreaChartOptions<T = Row> extends LineChartOptions<T> {
-  fill?: string;
+  /** Fill color (`false` to hide the fill) — honored by both single- and multi-series area. */
+  fill?: boolean | string;
   fillOpacity?: number;
 }
 
 export interface ScatterChartOptions<T = Row> extends CartesianChartOptions<T> {
   pointRadius?: number;
+  pointFill?: string;
   pointOpacity?: number;
 }
 
 export interface PieChartOptions<T = Row> extends BaseChartOptions<T> {
   label?: Accessor<T>;
   value?: Accessor<T, number>;
+  color?: ColorOption<T>;
   innerRadiusRatio?: number;
-  centerLabel?: string | false;
+  centerLabel?: string | true | false;
   centerSubLabel?: string;
   onSliceClick?: (e: ClickEvent<T>) => void;
 }

@@ -186,6 +186,104 @@ describe('typed chart wrapper — VdBarChart', () => {
     expect(wrapper.find('svg.vd-chart-svg').exists()).toBe(true);
     expect(wrapper.findAll('rect.vd-chart-bar')).toHaveLength(3);
   });
+
+  it('forwards bar-click emits from typed wrapper', async () => {
+    const wrapper = mount(VdBarChart, { props: { data: ROWS, x: 'cat', y: 'val' } });
+    wrappers.push(wrapper);
+    await wrapper.find('rect.vd-chart-bar').trigger('click');
+    expect(wrapper.emitted('bar-click')).toHaveLength(1);
+  });
+});
+
+describe('VdChart wrapper — full core prop parity (v1.2.0)', () => {
+  it('forwards line/area mark styling props (stroke, strokeWidth, points, pointRadius, pointFill, fill, fillOpacity)', async () => {
+    const wrapper = mountChart({
+      type: 'area',
+      data: [
+        { x: 0, y: 10 },
+        { x: 1, y: 20 },
+      ],
+      x: 'x',
+      y: 'y',
+      stroke: '#e03131',
+      strokeWidth: 4,
+      points: true,
+      pointRadius: 6,
+      pointFill: '#1971c2',
+      fill: '#fcc419',
+      fillOpacity: 0.45,
+    });
+
+    const line = wrapper.get('path.vd-chart-line-path');
+    expect(line.attributes('stroke')).toBe('#e03131');
+    expect(line.attributes('stroke-width')).toBe('4');
+
+    const area = wrapper.get('path.vd-chart-area-path');
+    expect(area.attributes('fill')).toBe('#fcc419');
+    expect(area.attributes('opacity')).toBe('0.45');
+
+    const point = wrapper.get('circle.vd-chart-point');
+    expect(point.attributes('r')).toBe('6');
+    expect(point.attributes('fill')).toBe('#1971c2');
+
+    await wrapper.setProps({ points: false, strokeWidth: 2 });
+    expect(wrapper.findAll('circle.vd-chart-point')).toHaveLength(0);
+    expect(wrapper.get('path.vd-chart-line-path').attributes('stroke-width')).toBe('2');
+  });
+
+  it('forwards scatter pointFill and pointOpacity props', () => {
+    const wrapper = mountChart({
+      type: 'scatter',
+      data: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 },
+      ],
+      x: 'x',
+      y: 'y',
+      pointRadius: 7,
+      pointFill: '#2f9e44',
+      pointOpacity: 0.6,
+    });
+    const pt = wrapper.get('circle.vd-chart-scatter-point');
+    expect(pt.attributes('r')).toBe('7');
+    expect(pt.attributes('fill')).toBe('#2f9e44');
+    expect(pt.attributes('opacity')).toBe('0.6');
+  });
+
+  it('forwards donut centerLabel and centerSubLabel props and updates reactively', async () => {
+    const wrapper = mountChart({
+      type: 'donut',
+      data: [
+        { label: 'A', value: 40 },
+        { label: 'B', value: 60 },
+      ],
+      centerLabel: '99.9%',
+      centerSubLabel: 'uptime',
+    });
+    expect(wrapper.text()).toContain('99.9%');
+    expect(wrapper.text()).toContain('uptime');
+
+    await wrapper.setProps({ centerLabel: '100%', centerSubLabel: 'SLA' });
+    expect(wrapper.text()).toContain('100%');
+    expect(wrapper.text()).toContain('SLA');
+  });
+
+  it('forwards ariaLabel, margin, barPadding, and xScale props', () => {
+    const wrapper = mountChart({
+      type: 'bar',
+      data: ROWS,
+      x: 'cat',
+      y: 'val',
+      ariaLabel: 'Custom accessible bar chart',
+      margin: { top: 30, right: 20, bottom: 40, left: 60 },
+      barPadding: 0.35,
+      xScale: 'band',
+    });
+    expect(wrapper.get('svg.vd-chart-svg').attributes('aria-label')).toBe(
+      'Custom accessible bar chart',
+    );
+    expect(wrapper.findAll('rect.vd-chart-bar')).toHaveLength(3);
+  });
 });
 
 describe('Vue pie defaults', () => {

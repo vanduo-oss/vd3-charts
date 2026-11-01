@@ -39,6 +39,7 @@ import {
   type OrdinalScale,
   type TooltipContext,
   type ClickEvent,
+  type ChartMargin,
   type Row,
   type VdChartProps,
   type VdChartType,
@@ -110,13 +111,28 @@ const themeFont: string = theme.fontFamily;
 
 const chartsVersion: string = VD_CHARTS_VERSION;
 
+const chartMargin: ChartMargin = { top: 16, right: 16, bottom: 28, left: 44 };
 const chartProps: VdChartProps = {
   type: 'bar',
   data: [{ month: 'Jan', value: 1 }],
   x: 'month',
   y: (row) => row.value,
+  ariaLabel: 'Monthly sales',
+  margin: chartMargin,
   innerRadiusRatio: 0.5,
   legend: { position: 'right' },
+  xScale: 'band',
+  barPadding: 0.2,
+  stroke: '#1971c2',
+  strokeWidth: 2,
+  points: true,
+  pointRadius: 4,
+  pointFill: '#1971c2',
+  pointOpacity: 0.9,
+  fill: true,
+  fillOpacity: 0.25,
+  centerLabel: '300',
+  centerSubLabel: 'total',
   svgRole: 'graphics-object',
 };
 const chartKind: VdChartType = 'donut';

@@ -21,10 +21,19 @@ Copy a recipe and replace its data. Keep stable row `id` values when data may
 reorder; mark focus follows the id, then category/x and series. Removing a
 focused mark moves focus to a remaining neighbor; an empty chart focuses its SVG.
 
-Changing props redraws the chart. After ancestor CSS/theme changes that do not
-change a prop, await Vue's next tick and call `chartRef.refresh()`. Every Vue
+Changing props redraws the chart. Charts also observe `data-theme`,
+`data-primary`, `data-palette`, `data-neutral`, `class`, and `style` mutations
+on `document.documentElement` and the chart container, re-rendering
+automatically when resolved `--vd-*` theme tokens change. For other ancestor
+CSS changes, await Vue's next tick and call `chartRef.refresh()`. Every Vue
 chart export exposes it. Core callers use `instance.render()`. Responsive
 observation follows the current `responsive` option.
+
+Vue wrappers accept all core styling and layout options (`stroke`,
+`strokeWidth`, `points`, `pointRadius`, `pointFill`, `pointOpacity`, `fill`,
+`fillOpacity`, `barPadding`, `xScale`, `margin`, `centerLabel`,
+`centerSubLabel`, `ariaLabel`, and `color` as a CSS color string, field name,
+or `(row) => color` callback).
 
 Verify keyboard arrows, Enter/Space events, a data update while focused, resize,
 and touch details. Describe the chart's takeaway in prose; value labels and a

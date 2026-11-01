@@ -16,7 +16,7 @@ const DEFAULT_COLORS = [
   '#fd7e14',
 ];
 
-export const VD_CHARTS_VERSION = '1.1.1';
+export const VD_CHARTS_VERSION = '1.2.0';
 
 let chartId = 0;
 
@@ -621,12 +621,33 @@ function renderDataTable(instance, tableData) {
   target.appendChild(table);
 }
 
+/**
+ * True when this chart draws its legend down the right edge of the plot, in
+ * which case the plot must give up that width or the marks slide underneath it.
+ */
+function usesRightLegend(options) {
+  return Boolean(
+    options.legend && typeof options.legend === 'object' && options.legend.position === 'right',
+  );
+}
+
+/** Width reserved for a right-edge legend, matching the donut's reservation. */
+const RIGHT_LEGEND_WIDTH = 128;
+
+/** Below this plot width a right legend is moved to the top instead of squeezing the marks. */
+const RIGHT_LEGEND_MIN_WIDTH = 520;
+
 function createSvgShell(instance) {
   const { target, options } = instance;
   const size = measureTarget(target, options);
   const theme = resolveTheme(target, options.theme);
   const margin = normalizeMargin(options.margin, options.polar ? POLAR_MARGIN : DEFAULT_MARGIN);
-  const plot = getPlotBox(size.width, size.height, margin);
+  const reserveRight =
+    !options.polar && usesRightLegend(options) && size.width >= RIGHT_LEGEND_MIN_WIDTH;
+  const plot = reserveRight
+    ? getPlotBox(size.width, size.height, { ...margin, right: margin.right + RIGHT_LEGEND_WIDTH })
+    : getPlotBox(size.width, size.height, margin);
+  plot.legendGutter = reserveRight ? RIGHT_LEGEND_WIDTH : 0;
 
   target.innerHTML = '';
   target.classList.add('vd-chart-root', `vd-chart-${instance.kind}`);
@@ -852,6 +873,21 @@ function inferXScale(rows, plot, options) {
   }
 
   const domain = unique(values).map(String);
+  if (explicitType === 'band') {
+    const scale = scaleBand({ domain, range: [plot.left, plot.right], padding: 0.5 });
+    const bandwidth = scale.bandwidth();
+    return {
+      scale,
+      values: domain,
+      ticks: domain,
+      type: 'band',
+      mapValue: (value) => String(value),
+      bandwidth,
+      // Band scales anchor at the left edge; center marks and ticks so a band
+      // chart looks like the categorical point chart it replaces.
+      offset: bandwidth / 2,
+    };
+  }
   return {
     scale: scalePoint({ domain, range: [plot.left, plot.right], padding: 0.5 }),
     values: domain,
@@ -861,11 +897,79 @@ function inferXScale(rows, plot, options) {
   };
 }
 
+/** Resolves an x value to a pixel position, centering it when the scale uses bands. */
+function mapX(xInfo, value) {
+  const raw = xInfo.scale(xInfo.mapValue(value));
+  if (!isFiniteNumber(raw)) return raw;
+  return xInfo.offset ? raw + xInfo.offset : raw;
+}
+
+/** CSS named colors, used only when `CSS.supports` is unavailable (older SSR/jsdom). */
+const NAMED_COLORS = new Set(
+  (
+    'aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue ' +
+    'blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk ' +
+    'crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki ' +
+    'darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen ' +
+    'darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue ' +
+    'dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite ' +
+    'gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki ' +
+    'lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan ' +
+    'lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen ' +
+    'lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen ' +
+    'magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen ' +
+    'mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream ' +
+    'mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid ' +
+    'palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum ' +
+    'powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown ' +
+    'seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen ' +
+    'steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow ' +
+    'yellowgreen transparent currentcolor'
+  ).split(' '),
+);
+
+function hasOwnPathValue(row, path) {
+  if (row == null || typeof row !== 'object') return false;
+  let cursor = row;
+  for (const part of String(path).split('.')) {
+    if (cursor == null || typeof cursor !== 'object') return false;
+    if (!Object.prototype.hasOwnProperty.call(cursor, part)) return false;
+    cursor = cursor[part];
+  }
+  return true;
+}
+
+function isCssColorString(value, rows = []) {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (
+    trimmed.startsWith('#') ||
+    /^(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|var)\s*\(/i.test(trimmed)
+  ) {
+    return true;
+  }
+  if (rows.length && rows.some((row) => hasOwnPathValue(row.raw ?? row, trimmed))) {
+    return false;
+  }
+  if (typeof CSS !== 'undefined' && typeof CSS.supports === 'function') {
+    return CSS.supports('color', trimmed);
+  }
+  // Without CSS.supports there is no way to tell a bare color keyword (`red`,
+  // `rebeccapurple`) from a field name. Prefer the documented keyword list so a
+  // misspelled field never silently becomes an invalid fill.
+  return NAMED_COLORS.has(trimmed.toLowerCase());
+}
+
 function getColorScale(rows, colorOption, theme) {
   if (colorOption == null) return null;
   // A function returns a CSS color per datum directly (e.g. (row) => '#40c057').
   if (typeof colorOption === 'function') {
     return { direct: colorOption };
+  }
+  if (typeof colorOption === 'string' && isCssColorString(colorOption, rows)) {
+    const trimmed = colorOption.trim();
+    return { direct: () => trimmed };
   }
   // A string names a category field → ordinal palette (legacy behavior).
   const colorAccessor = createAccessor(colorOption);
@@ -915,12 +1019,18 @@ function buildSeriesList(options) {
     });
   }
 
+  const singleRows = buildRows(sharedData, createAccessor(options.y, 'y'));
+  const fallbackColor =
+    typeof options.color === 'string' && isCssColorString(options.color, singleRows)
+      ? options.color.trim()
+      : undefined;
+
   return [
     {
       name: options.name ?? null,
-      color: options.stroke,
+      color: options.stroke || fallbackColor,
       seriesIndex: 0,
-      rows: buildRows(sharedData, createAccessor(options.y, 'y')),
+      rows: singleRows,
     },
   ];
 }
@@ -968,6 +1078,21 @@ function renderTopLegend(svg, items, theme, plot) {
     );
     x += widths[index];
   });
+}
+
+function renderCartesianLegend(svg, items, options, theme, plot) {
+  if (!items.length) return;
+  if (plot.legendGutter) {
+    renderRightLegend(svg, items, theme, plot);
+    return;
+  }
+  renderTopLegend(svg, items, theme, plot);
+}
+
+/** Draws the legend in the right-hand gutter that `createSvgShell` reserved for it. */
+function renderRightLegend(svg, items, theme, plot) {
+  const shown = items.slice(0, 8);
+  renderLegend(svg, shown, (_label, item) => item.color, theme, plot.right + 12, plot.top + 12);
 }
 
 function dataLabelConfig(options) {
@@ -1195,9 +1320,10 @@ function renderBarChart(instance) {
   });
 
   if (options.legend && color && color.scale) {
-    renderTopLegend(
+    renderCartesianLegend(
       svg,
       color.scale.domain().map((cat) => ({ label: cat, color: color.scale(cat) })),
+      options,
       theme,
       plot,
     );
@@ -1331,9 +1457,10 @@ function renderMultiBarChart(instance) {
   });
 
   if (options.legend !== false) {
-    renderTopLegend(
+    renderCartesianLegend(
       svg,
       seriesList.map((series) => ({ label: series.name, color: seriesColor(series, theme) })),
+      options,
       theme,
       plot,
     );
@@ -1375,14 +1502,19 @@ function renderLineLikeChart(instance, mode) {
   );
   const yScale = scaleLinear({ domain: yDomain, range: [plot.bottom, plot.top] });
   const yTicks = yScale.ticks(options.yTickCount ?? 5);
-  const color = options.stroke || theme.colors[0];
+  const fallbackStroke =
+    typeof options.color === 'string' && isCssColorString(options.color, rows)
+      ? options.color.trim()
+      : null;
+  const color = options.stroke || fallbackStroke || theme.colors[0];
+  const pointColorScale = getColorScale(rows, options.color, theme);
   const points = rows
     .map((row) => ({
       raw: row.raw,
       index: row.index,
       xValue: row.x,
       yValue: row.y,
-      x: xInfo.scale(xInfo.mapValue(row.x)),
+      x: mapX(xInfo, row.x),
       y: yScale(row.y),
     }))
     .filter((point) => isFiniteNumber(point.x) && isFiniteNumber(point.y));
@@ -1395,7 +1527,7 @@ function renderLineLikeChart(instance, mode) {
     yTicks,
     theme,
     options,
-    categoricalX: xInfo.type === 'point',
+    categoricalX: xInfo.type === 'point' || xInfo.type === 'band',
   });
 
   drawAnnotations(svg, options, plot, xInfo.scale, yScale, theme);
@@ -1409,14 +1541,14 @@ function renderLineLikeChart(instance, mode) {
     }),
   );
 
-  if (mode === 'area') {
+  if (mode === 'area' && options.fill !== false) {
     const baseline = yScale(Math.max(0, yDomain[0]));
     append(
       markGroup,
       svgEl('path', {
         class: 'vd-chart-area-path',
         d: areaPath(points, baseline),
-        fill: options.fill || color,
+        fill: typeof options.fill === 'string' ? options.fill : color,
         opacity: options.fillOpacity ?? 0.18,
         stroke: 'none',
       }),
@@ -1438,13 +1570,17 @@ function renderLineLikeChart(instance, mode) {
 
   if (options.points !== false) {
     points.forEach((point) => {
+      const pointStroke =
+        pointColorScale && typeof options.color === 'function'
+          ? colorForRow(pointColorScale, point, theme)
+          : color;
       const circle = svgEl('circle', {
         class: 'vd-chart-point',
         cx: point.x,
         cy: point.y,
         r: options.pointRadius || 3.5,
         fill: options.pointFill || theme.backgroundColor,
-        stroke: color,
+        stroke: pointStroke,
         'stroke-width': 2,
         role: 'graphics-symbol',
         'aria-roledescription': 'data point',
@@ -1520,7 +1656,7 @@ function renderMultiLineChart(instance, mode) {
     yTicks,
     theme,
     options,
-    categoricalX: xInfo.type === 'point',
+    categoricalX: xInfo.type === 'point' || xInfo.type === 'band',
   });
 
   drawAnnotations(svg, options, plot, xInfo.scale, yScale, theme);
@@ -1543,18 +1679,18 @@ function renderMultiLineChart(instance, mode) {
         index: row.index,
         xValue: row.x,
         yValue: row.y,
-        x: xInfo.scale(xInfo.mapValue(row.x)),
+        x: mapX(xInfo, row.x),
         y: yScale(row.y),
       }))
       .filter((point) => isFiniteNumber(point.x) && isFiniteNumber(point.y));
 
-    if (mode === 'area') {
+    if (mode === 'area' && options.fill !== false) {
       append(
         markGroup,
         svgEl('path', {
           class: 'vd-chart-area-path',
           d: areaPath(points, baseline),
-          fill: series.color || stroke,
+          fill: typeof options.fill === 'string' ? options.fill : series.color || stroke,
           opacity: options.fillOpacity ?? 0.18,
           stroke: 'none',
         }),
@@ -1649,9 +1785,10 @@ function renderMultiLineChart(instance, mode) {
   });
 
   if (options.legend !== false) {
-    renderTopLegend(
+    renderCartesianLegend(
       svg,
       seriesList.map((series) => ({ label: series.name, color: seriesColor(series, theme) })),
+      options,
       theme,
       plot,
     );
@@ -1701,7 +1838,7 @@ function renderScatterChart(instance) {
     yTicks,
     theme,
     options,
-    categoricalX: xInfo.type === 'point',
+    categoricalX: xInfo.type === 'point' || xInfo.type === 'band',
   });
 
   drawAnnotations(svg, options, plot, xInfo.scale, yScale, theme);
@@ -1715,10 +1852,10 @@ function renderScatterChart(instance) {
     }),
   );
   rows.forEach((row) => {
-    const cx = xInfo.scale(xInfo.mapValue(row.x));
+    const cx = mapX(xInfo, row.x);
     const cy = yScale(row.y);
     if (!isFiniteNumber(cx) || !isFiniteNumber(cy)) return;
-    const fill = colorForRow(color, row, theme);
+    const fill = options.pointFill || colorForRow(color, row, theme);
     const circle = svgEl('circle', {
       class: 'vd-chart-scatter-point',
       cx,
@@ -1757,9 +1894,10 @@ function renderScatterChart(instance) {
   });
 
   if (options.legend && color && color.scale) {
-    renderTopLegend(
+    renderCartesianLegend(
       svg,
       color.scale.domain().map((cat) => ({ label: cat, color: color.scale(cat) })),
+      options,
       theme,
       plot,
     );
@@ -1778,7 +1916,7 @@ function renderLegend(svg, rows, colorScale, theme, x, y) {
         width: 10,
         height: 10,
         rx: 2,
-        fill: colorScale(row.label),
+        fill: colorScale(row.label, row),
       }),
     );
     append(
@@ -1819,7 +1957,11 @@ function renderDonutChart(instance) {
     return;
   }
 
-  const legendSpace = options.legend === false || size.width < 520 ? 0 : 128;
+  const legendPos =
+    typeof options.legend === 'object' && options.legend !== null ? options.legend.position : null;
+  const showLegend = options.legend !== false;
+  const useTopLegend = showLegend && legendPos === 'top';
+  const legendSpace = !showLegend || useTopLegend || size.width < 520 ? 0 : 128;
   const cx = (plot.left + plot.right - legendSpace) / 2;
   const cy = (plot.top + plot.bottom) / 2 + 5;
   const outerRadius = Math.max(
@@ -1828,7 +1970,13 @@ function renderDonutChart(instance) {
   );
   const ratio = Math.max(0, Math.min(0.9, Number(options.innerRadiusRatio ?? 0.62)));
   const innerRadius = outerRadius * ratio;
-  const colorScale = scaleOrdinal({ domain: rows.map((row) => row.label), range: theme.colors });
+  const defaultColorScale = scaleOrdinal({
+    domain: rows.map((row) => row.label),
+    range: theme.colors,
+  });
+  const customColor = options.color ? getColorScale(rows, options.color, theme) : null;
+  const resolveSliceColor = (row) =>
+    customColor ? colorForRow(customColor, row, theme) : defaultColorScale(row.label);
   const labels = dataLabelConfig(options);
   const markGroup = append(
     svg,
@@ -1848,7 +1996,7 @@ function renderDonutChart(instance) {
     const path = svgEl('path', {
       class: 'vd-chart-slice',
       d: arcPath(cx, cy, outerRadius, innerRadius, start, end),
-      fill: colorScale(row.label),
+      fill: resolveSliceColor(row),
       stroke: theme.backgroundColor,
       'stroke-width': 2,
       role: 'graphics-symbol',
@@ -1901,7 +2049,9 @@ function renderDonutChart(instance) {
           'font-weight': 700,
           'text-anchor': 'middle',
         }),
-        options.centerLabel || formatNumber(total),
+        typeof options.centerLabel === 'string' && options.centerLabel
+          ? options.centerLabel
+          : formatNumber(total),
       ),
     );
     append(
@@ -1919,8 +2069,22 @@ function renderDonutChart(instance) {
     );
   }
 
-  if (legendSpace) {
-    renderLegend(svg, rows, colorScale, theme, plot.right - legendSpace + 8, plot.top + 28);
+  if (useTopLegend) {
+    renderTopLegend(
+      svg,
+      rows.map((row) => ({ label: row.label, color: resolveSliceColor(row) })),
+      theme,
+      plot,
+    );
+  } else if (legendSpace) {
+    renderLegend(
+      svg,
+      rows,
+      (_label, row) => resolveSliceColor(row),
+      theme,
+      plot.right - legendSpace + 8,
+      plot.top + 28,
+    );
   }
 }
 
@@ -1932,6 +2096,8 @@ class ChartInstance {
     this.target = resolveTarget(options.target);
     this.renderer = renderer;
     this.resizeObserver = null;
+    this.themeObserver = null;
+    this.themeFrame = null;
     this.destroyed = false;
     this.theme = null;
     this.size = null;
@@ -1939,6 +2105,7 @@ class ChartInstance {
     this.tooltipEl = null;
     this.render();
     this.setupResizeObserver();
+    this.setupThemeObserver();
   }
 
   render() {
@@ -1977,6 +2144,9 @@ class ChartInstance {
     if (this.destroyed) return this;
     this.options = { ...this.options, ...nextOptions };
     this.setupResizeObserver();
+    // Re-arm theme observation: the target may have been detached (which tears
+    // the observer down) or replaced since the previous render.
+    this.setupThemeObserver();
     return this.render();
   }
 
@@ -2006,6 +2176,59 @@ class ChartInstance {
       this.resize();
     });
     this.resizeObserver.observe(this.target);
+  }
+
+  setupThemeObserver() {
+    if (this.themeObserver || !hasWindow() || typeof MutationObserver === 'undefined') return;
+    const attributeFilter = [
+      'data-theme',
+      'data-primary',
+      'data-palette',
+      'data-neutral',
+      'class',
+      'style',
+    ];
+    this.themeObserver = new MutationObserver(() => {
+      if (this.destroyed) return;
+      // A detached target can no longer resolve tokens against the document, so
+      // stop observing rather than waking up on every root mutation.
+      if (!this.target.isConnected) {
+        this.teardownThemeObserver();
+        return;
+      }
+      // Coalesce bursts (a class swap plus a style tweak in one frame) into a
+      // single theme resolution and re-render.
+      if (this.themeFrame != null) return;
+      const schedule =
+        typeof requestAnimationFrame === 'function'
+          ? requestAnimationFrame
+          : (callback) => setTimeout(callback, 16);
+      this.themeFrame = schedule(() => {
+        this.themeFrame = null;
+        if (this.destroyed || !this.target.isConnected) return;
+        const nextTheme = resolveTheme(this.target, this.options.theme);
+        if (JSON.stringify(nextTheme) === JSON.stringify(this.theme)) return;
+        this.render();
+      });
+    });
+    if (document.documentElement) {
+      this.themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter,
+      });
+    }
+    this.themeObserver.observe(this.target, {
+      attributes: true,
+      attributeFilter,
+    });
+  }
+
+  teardownThemeObserver() {
+    if (this.themeObserver) {
+      this.themeObserver.disconnect();
+      this.themeObserver = null;
+    }
+    this.themeFrame = null;
   }
 
   ensureTooltip() {
@@ -2050,6 +2273,7 @@ class ChartInstance {
       this.resizeObserver.disconnect();
       this.resizeObserver = null;
     }
+    this.teardownThemeObserver();
     this.target.innerHTML = '';
     this.target.classList.remove('vd-chart-root', `vd-chart-${this.kind}`);
     this.destroyed = true;

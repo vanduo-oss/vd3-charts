@@ -6,10 +6,16 @@ Vanduo **charts** for Vue 3: SVG bar, line, area, scatter, donut, and pie —
 Vue wrappers plus a framework-agnostic core (factories, scales, helpers).
 Extracted 1-to-1 from `@vanduo-oss/vd3-cbun` charts **1.1.0**.
 
-**Status: 1.1.1.** `VD_CHARTS_VERSION` matches the package version. Pie
-defaults stay filled when `innerRadiusRatio` is omitted; the resize observer
-follows `responsive`; data redraws keep logical focus; Vue `refresh()` covers
-CSS-only theme changes; touch can reveal details.
+**Status: 1.2.0.** `VD_CHARTS_VERSION` matches the package version. Vue
+wrappers (`VdChart` and typed convenience components) expose the full core
+styling, layout, and scale props (`ariaLabel`, `margin`, `xScale`,
+`barPadding`, `stroke`, `strokeWidth`, `points`, `pointRadius`, `pointFill`,
+`pointOpacity`, `fill`, `fillOpacity`, `centerLabel`, `centerSubLabel`); `color`
+accepts CSS color strings, category field names, or callbacks across Cartesian
+and polar charts; `legend.position` supports `'top'` and `'right'`; and charts
+automatically re-render when `data-theme`, `data-primary`, `data-palette`, or
+`data-neutral` changes on `document.documentElement` or the chart container (in
+addition to imperative `refresh()`).
 
 ## Install
 
@@ -54,9 +60,11 @@ if anything but `vue` is externalized. The package declares
 
 ## Version policy
 
-`package.json` version **is** `VD_CHARTS_VERSION` (`1.1.1`). Bump both together.
+`package.json` version **is** `VD_CHARTS_VERSION` (`1.2.0`). Bump both together.
 This continues the cbun charts lineage (old-line `0.2.0` → bundle `1.0.0` →
-`1.0.1` bar baseline → `1.1.0` mark-click emits → `1.1.1` pie/update fixes).
+`1.0.1` bar baseline → `1.1.0` mark-click emits → `1.1.1` pie/update fixes →
+`1.2.0` Vue wrapper prop parity, CSS color strings, legend positioning, and
+automatic theme reactivity).
 Do not reuse the retired npm name `@vanduo-oss/charts`.
 
 ## Theming
@@ -107,6 +115,7 @@ pnpm test          # vitest (jsdom + node)
 pnpm build         # esbuild harness → dist/
 pnpm test:types    # tsc --noEmit over tests/types (needs dist/)
 pnpm test:e2e      # Playwright Chromium (needs dist/)
+pnpm release:check # full pre-publish QA gate + OpenSpec + tarball consumer smoke
 ```
 
 `test:types` and `test:e2e` consume the built `dist/` output, so **run
