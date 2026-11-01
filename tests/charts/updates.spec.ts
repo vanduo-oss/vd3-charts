@@ -158,15 +158,31 @@ describe('chart updates', () => {
     }
   });
 
-  it('disconnects the theme observer once the target is detached', async () => {
+  it('tears down theme observation when the target is detached, and re-arms on update', async () => {
     const instance = chart();
     const host = instance.target as HTMLElement;
-    instance.destroy();
-    // A destroyed chart must not react to further root mutations.
-    const before = host.innerHTML;
-    document.documentElement.setAttribute('data-theme', 'dark');
+    const root = document.documentElement;
+
+    // Detach without destroying: the next delivered mutation tears the observer
+    // down, so the chart stops reacting to unrelated root changes.
+    host.remove();
+    root.style.setProperty('--vd-chart-1', '#111111');
     await nextFrame();
-    expect(host.innerHTML).toBe(before);
-    document.documentElement.removeAttribute('data-theme');
+    const detachedFill = host.querySelector('rect.vd-chart-bar')?.getAttribute('fill');
+
+    root.style.setProperty('--vd-chart-1', '#222222');
+    await nextFrame();
+    expect(host.querySelector('rect.vd-chart-bar')?.getAttribute('fill')).toBe(detachedFill);
+
+    // Re-attaching and calling update() must restore theme reactivity.
+    document.body.appendChild(host);
+    instance.update({});
+    root.style.setProperty('--vd-chart-1', '#333333');
+    await nextFrame();
+    try {
+      expect(host.querySelector('rect.vd-chart-bar')?.getAttribute('fill')).toBe('#333333');
+    } finally {
+      root.style.removeProperty('--vd-chart-1');
+    }
   });
 });

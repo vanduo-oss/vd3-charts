@@ -114,6 +114,38 @@ describe('option and renderer parity', () => {
     expect(bandPath).not.toBe(pointPath);
   });
 
+  it('xScale: "band" centers marks in the band and keeps categorical tick labels', () => {
+    const rows = [
+      { k: 'alpha', v: 1 },
+      { k: 'beta', v: 2 },
+      { k: 'gamma', v: 3 },
+    ];
+    const bandEl = target();
+    track(LineChart({ target: bandEl, data: rows, x: 'k', y: 'v', xScale: 'band' }));
+
+    // Tick labels must be the category names, not '' from formatNumber(NaN).
+    const tickLabels = Array.from(bandEl.querySelectorAll('.vd-chart-axes text')).map(
+      (node) => node.textContent,
+    );
+    ['alpha', 'beta', 'gamma'].forEach((label) => expect(tickLabels).toContain(label));
+    expect(tickLabels).not.toContain('');
+
+    // Axis ticks are drawn at the band center. The marks must land on those
+    // same positions; if the band offset is dropped the marks sit at the band's
+    // left edge and no longer line up with their ticks or labels.
+    const tickXs = Array.from(bandEl.querySelectorAll('.vd-chart-axes line'))
+      .map((line) => Number(line.getAttribute('x1')))
+      .filter((x) => Number.isFinite(x));
+    const markXs = Array.from(bandEl.querySelectorAll('path.vd-chart-line-path')).flatMap(
+      (path) => {
+        const numbers = (path.getAttribute('d') ?? '').match(/-?[\d.]+/g)?.map(Number) ?? [];
+        return numbers.filter((_, index) => index % 2 === 0);
+      },
+    );
+    expect(markXs).toHaveLength(3);
+    markXs.forEach((x) => expect(tickXs).toContain(x));
+  });
+
   it('multi-series area honors fill: false and a custom fill color', () => {
     const hidden = target();
     track(

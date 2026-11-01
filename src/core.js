@@ -875,13 +875,17 @@ function inferXScale(rows, plot, options) {
   const domain = unique(values).map(String);
   if (explicitType === 'band') {
     const scale = scaleBand({ domain, range: [plot.left, plot.right], padding: 0.5 });
+    const bandwidth = scale.bandwidth();
     return {
       scale,
       values: domain,
       ticks: domain,
       type: 'band',
       mapValue: (value) => String(value),
-      bandwidth: scale.bandwidth(),
+      bandwidth,
+      // Band scales anchor at the left edge; center marks and ticks so a band
+      // chart looks like the categorical point chart it replaces.
+      offset: bandwidth / 2,
     };
   }
   return {
@@ -891,6 +895,13 @@ function inferXScale(rows, plot, options) {
     type: 'point',
     mapValue: (value) => String(value),
   };
+}
+
+/** Resolves an x value to a pixel position, centering it when the scale uses bands. */
+function mapX(xInfo, value) {
+  const raw = xInfo.scale(xInfo.mapValue(value));
+  if (!isFiniteNumber(raw)) return raw;
+  return xInfo.offset ? raw + xInfo.offset : raw;
 }
 
 /** CSS named colors, used only when `CSS.supports` is unavailable (older SSR/jsdom). */
@@ -1503,7 +1514,7 @@ function renderLineLikeChart(instance, mode) {
       index: row.index,
       xValue: row.x,
       yValue: row.y,
-      x: xInfo.scale(xInfo.mapValue(row.x)),
+      x: mapX(xInfo, row.x),
       y: yScale(row.y),
     }))
     .filter((point) => isFiniteNumber(point.x) && isFiniteNumber(point.y));
@@ -1516,7 +1527,7 @@ function renderLineLikeChart(instance, mode) {
     yTicks,
     theme,
     options,
-    categoricalX: xInfo.type === 'point',
+    categoricalX: xInfo.type === 'point' || xInfo.type === 'band',
   });
 
   drawAnnotations(svg, options, plot, xInfo.scale, yScale, theme);
@@ -1645,7 +1656,7 @@ function renderMultiLineChart(instance, mode) {
     yTicks,
     theme,
     options,
-    categoricalX: xInfo.type === 'point',
+    categoricalX: xInfo.type === 'point' || xInfo.type === 'band',
   });
 
   drawAnnotations(svg, options, plot, xInfo.scale, yScale, theme);
@@ -1668,7 +1679,7 @@ function renderMultiLineChart(instance, mode) {
         index: row.index,
         xValue: row.x,
         yValue: row.y,
-        x: xInfo.scale(xInfo.mapValue(row.x)),
+        x: mapX(xInfo, row.x),
         y: yScale(row.y),
       }))
       .filter((point) => isFiniteNumber(point.x) && isFiniteNumber(point.y));
@@ -1827,7 +1838,7 @@ function renderScatterChart(instance) {
     yTicks,
     theme,
     options,
-    categoricalX: xInfo.type === 'point',
+    categoricalX: xInfo.type === 'point' || xInfo.type === 'band',
   });
 
   drawAnnotations(svg, options, plot, xInfo.scale, yScale, theme);
@@ -1841,7 +1852,7 @@ function renderScatterChart(instance) {
     }),
   );
   rows.forEach((row) => {
-    const cx = xInfo.scale(xInfo.mapValue(row.x));
+    const cx = mapX(xInfo, row.x);
     const cy = yScale(row.y);
     if (!isFiniteNumber(cx) || !isFiniteNumber(cy)) return;
     const fill = options.pointFill || colorForRow(color, row, theme);
@@ -2133,6 +2144,9 @@ class ChartInstance {
     if (this.destroyed) return this;
     this.options = { ...this.options, ...nextOptions };
     this.setupResizeObserver();
+    // Re-arm theme observation: the target may have been detached (which tears
+    // the observer down) or replaced since the previous render.
+    this.setupThemeObserver();
     return this.render();
   }
 

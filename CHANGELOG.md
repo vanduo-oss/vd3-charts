@@ -42,8 +42,10 @@ All notable changes to `@vanduo-oss/vd3-charts` are documented here.
   to match.
 - **`xScale: 'band'` is implemented** — the option advertised `'band'` but
   `inferXScale` fell through to the point scale, so line/area/scatter silently
-  ignored it. `'band'` now builds a real band scale. Bar charts continue to
-  always use a band scale, and the declaration says so.
+  ignored it. `'band'` now builds a real band scale, centers marks and axis
+  ticks within each band, and keeps categorical tick labels (it previously
+  formatted band ticks as numbers, rendering them blank). Bar charts continue
+  to always use a band scale, and the declaration says so.
 - **Multi-series area honors `fill`** — `fill: false` hid the fill on
   single-series area charts but not on multi-series ones, which always used the
   series color; a string fill was likewise ignored. Both paths now agree.
@@ -55,7 +57,8 @@ All notable changes to `@vanduo-oss/vd3-charts` are documented here.
 - **Theme observer no longer leaks or thrashes** — the observer now disconnects
   when the chart's target is detached, and coalesces mutations into one theme
   resolution per animation frame instead of forcing a style recalc per
-  `<html>` class or style change.
+  `<html>` class or style change. `update()` re-arms observation, so a chart
+  that was detached and re-attached keeps theme reactivity.
 - **Color detection no longer depends on the environment** — without
   `CSS.supports`, any non-empty string was treated as a color whenever rows
   existed, so a misspelled field name silently became an invalid fill. Fallback
