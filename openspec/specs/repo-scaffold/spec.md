@@ -91,7 +91,7 @@ An automated test MUST assert that sync. There is no separate
 ### Requirement: CI pipeline
 
 The repo MUST provide `.github/workflows/ci.yml` with SHA-pinned actions,
-least-privilege `permissions: contents: read`, pnpm 10.28.2, and Node 24.
+least-privilege `permissions: contents: read`, pnpm 10.28.2, and Node 26.
 Gates run: frozen
 install, audit, lint, format:check, stylelint, test, **build**, `test:skills`,
 `test:types`,
@@ -185,7 +185,7 @@ skips `prepack`.
 ### Requirement: shipped artifact and engine-floor checks
 
 `release:check` MUST run the local quality gates without publishing. CI MUST
-run those gates on Node 24 and MUST also install and test the built package
+run those gates on Node 26 and MUST also install and test the built package
 on Node 20.19. A pack check MUST reject unexpected tarball paths and MUST
 install the tarball in temporary ESM and CJS consumers.
 

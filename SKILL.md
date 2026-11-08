@@ -33,7 +33,7 @@ Vue wrappers accept all core styling and layout options (`stroke`,
 `strokeWidth`, `points`, `pointRadius`, `pointFill`, `pointOpacity`, `fill`,
 `fillOpacity`, `barPadding`, `xScale`, `margin`, `centerLabel`,
 `centerSubLabel`, `ariaLabel`, and `color` as a CSS color string, field name,
-or `(row) => color` callback).
+or `(row) => color` callback). `legend.position` is `'top'` or `'right'`.
 
 Verify keyboard arrows, Enter/Space events, a data update while focused, resize,
 and touch details. Describe the chart's takeaway in prose; value labels and a
