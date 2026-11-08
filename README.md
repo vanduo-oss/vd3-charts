@@ -1,21 +1,12 @@
 # @vanduo-oss/vd3-charts
 
+<a href="https://snyk.io/?utm_source=open-source&utm_medium=pg-ptr&utm_campaign=ref-2501-osp&utm_content=pg-cta"><img src="https://raw.githubusercontent.com/vanduo-oss/vd3-charts/main/assets/scanned-by-snyk.png" alt="Scanned by Snyk" width="206" height="141"></a>
+
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Vanduo **charts** for Vue 3: SVG bar, line, area, scatter, donut, and pie —
-Vue wrappers plus a framework-agnostic core (factories, scales, helpers).
-Extracted 1-to-1 from `@vanduo-oss/vd3-cbun` charts **1.1.0**.
+SVG bar, line, area, scatter, donut, and pie charts for Vue 3, plus a framework-agnostic core. Peer: `vue >=3.3.0`.
 
-**Status: 1.2.0.** `VD_CHARTS_VERSION` matches the package version. Vue
-wrappers (`VdChart` and typed convenience components) expose the full core
-styling, layout, and scale props (`ariaLabel`, `margin`, `xScale`,
-`barPadding`, `stroke`, `strokeWidth`, `points`, `pointRadius`, `pointFill`,
-`pointOpacity`, `fill`, `fillOpacity`, `centerLabel`, `centerSubLabel`); `color`
-accepts CSS color strings, category field names, or callbacks across Cartesian
-and polar charts; `legend.position` supports `'top'` and `'right'`; and charts
-automatically re-render when `data-theme`, `data-primary`, `data-palette`, or
-`data-neutral` changes on `document.documentElement` or the chart container (in
-addition to imperative `refresh()`).
+**Status: 1.2.0.** `VD_CHARTS_VERSION` matches the package version. Guides: [vd3.vanduo.dev](https://vd3.vanduo.dev/). Agents: [SKILL.md](./SKILL.md).
 
 ## Install
 
@@ -23,117 +14,43 @@ addition to imperative `refresh()`).
 pnpm add @vanduo-oss/vd3-charts
 ```
 
-`vue >=3.3.0` is a **required** peer dependency (the only runtime dep) — install
-it alongside if your project does not already depend on Vue. For correct
-theming, also provide the Vanduo `--vd-*` design tokens (see
-[Theming](#theming)).
-
 ## Import
 
 ```js
-import {
-  VdChart,
-  VdBarChart,
-  VdLineChart,
-  VdAreaChart,
-  VdScatterChart,
-  VdDonutChart,
-  VdPieChart,
-  BarChart,
-  scaleLinear,
-  VD_CHARTS_VERSION,
-} from '@vanduo-oss/vd3-charts';
+import { VdBarChart, VD_CHARTS_VERSION } from '@vanduo-oss/vd3-charts';
 import '@vanduo-oss/vd3-charts/css';
 ```
 
-Named exports only — no default export. The Vue wrappers are the primary
-surface; the core factories (`BarChart`, `LineChart`, `AreaChart`,
-`ScatterChart`, `DonutChart`, `PieChart`), scales (`scaleLinear`, `scaleTime`,
-`scaleBand`, `scalePoint`, `scaleOrdinal`), helpers (`createAccessor`, `ticks`,
-`niceDomain`, `linePath`, `areaPath`, `arcPath`), and `resolveTheme` are
-re-exported alongside. The core does not import Vue.
+Named exports only. Vue wrappers are the primary surface. Core factories, scales, and helpers are re-exported and do not import Vue. `vue` stays external. The build fails if anything other than `vue` is externalized.
 
-`vue` is never bundled — it stays external in both the esm and cjs outputs.
-The build emits `dist/meta.json` and **fails** if any input leaves `src/` or
-if anything but `vue` is externalized. The package declares
-`sideEffects: ["**/*.css"]`.
-
-## Version policy
-
-`package.json` version **is** `VD_CHARTS_VERSION` (`1.2.0`). Bump both together.
-This continues the cbun charts lineage (old-line `0.2.0` → bundle `1.0.0` →
-`1.0.1` bar baseline → `1.1.0` mark-click emits → `1.1.1` pie/update fixes →
-`1.2.0` Vue wrapper prop parity, CSS color strings, legend positioning, and
-automatic theme reactivity).
-Do not reuse the retired npm name `@vanduo-oss/charts`.
-
-## Theming
-
-Charts render against Vanduo `--vd-*` design tokens — the same tokens
-`@vanduo-oss/vd3` defines — with built-in fallbacks. vd3 is not a package
-dependency; any provider of the tokens works.
-
-```js
-import '@vanduo-oss/vd3/css';
-// Same component styles without bundled icon fonts:
-import '@vanduo-oss/vd3/css/core';
-```
-
-`@vanduo-oss/vd3/css/core` is **not** tokens-only. Token JSON is
-`@vanduo-oss/vd3/tokens.json`.
-
-Tokens consumed include `--vd-bg-primary`, `--vd-bg-secondary`,
-`--vd-text-primary`, `--vd-text-muted`, `--vd-border-color`,
-`--vd-color-primary`, and `--vd-chart-1`…`--vd-chart-8`.
+Charts use Vanduo `--vd-*` tokens, with fallbacks. `@vanduo-oss/vd3` is not a dependency. Import `@vanduo-oss/vd3/css` or `@vanduo-oss/vd3/css/core` once when the app already uses vd3. `/css/core` is not tokens-only; token JSON is `@vanduo-oss/vd3/tokens.json`.
 
 ## Security
 
-- **No bundled dependencies** — beyond the `vue` peer, nothing is bundled; the
-  build fails if any other module is externalized or any `node_modules` input
-  is bundled.
-- **Hardened `.npmrc`:** `ignore-scripts`, `minimum-release-age`, `save-exact`,
-  `strict-peer-dependencies`, `trust-policy=no-downgrade`,
-  `block-exotic-subdeps`, and an explicit `registry`.
-- **MIT** licensed ([LICENSE](./LICENSE)); the package vendors no third-party
-  runtime code.
+This repo is monitored with [Snyk](https://snyk.io/?utm_source=open-source&utm_medium=pg-ptr&utm_campaign=ref-2501-osp&utm_content=pg-cta).
+
+- Nothing is bundled beyond the `vue` peer.
+- Hardened `.npmrc`: `ignore-scripts`, `minimum-release-age`, `save-exact`, `strict-peer-dependencies`, `trust-policy=no-downgrade`, `block-exotic-subdeps`, and an explicit `registry`.
+- [MIT](./LICENSE). No vendored third-party runtime code.
 
 ## Exports
 
 | Export | Contents |
 | --- | --- |
-| `@vanduo-oss/vd3-charts` | Vue wrappers + core factories, scales, helpers, `VD_CHARTS_VERSION` |
+| `@vanduo-oss/vd3-charts` | Vue wrappers, core factories, scales, helpers, `VD_CHARTS_VERSION` |
 | `@vanduo-oss/vd3-charts/css` | Stylesheet (`dist/vd3-charts.css`) |
 
 ## Development
 
-```sh
-pnpm install
-pnpm lint          # eslint
-pnpm format:check  # prettier
-pnpm stylelint     # authored CSS
-pnpm test          # vitest (jsdom + node)
-pnpm build         # esbuild harness → dist/
-pnpm test:types    # tsc --noEmit over tests/types (needs dist/)
-pnpm test:e2e      # Playwright Chromium (needs dist/)
-pnpm release:check # full pre-publish QA gate + OpenSpec + tarball consumer smoke
-```
-
-`test:types` and `test:e2e` consume the built `dist/` output, so **run
-`pnpm build` first**. Chromium must be installed once:
-`pnpm exec playwright install chromium`.
-
-Node 24 LTS is the supported development and CI runtime; run `nvm use` to select
-it for this repository from `.nvmrc`. The existing `engines.node >=20.19.0`
-range remains a temporary consumer compatibility floor, tested on a best-effort
-basis until the next major release; it is not the recommended development
-runtime.
+Node 26 LTS (`nvm use` from `.nvmrc`) and pnpm >= 10. `engines.node` `>=20.19.0` is the consumer floor. `pnpm release:check` is the pre-publish gate. `pnpm test:types` and `pnpm test:e2e` need `pnpm build` first. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Documentation
 
-- Agent / LLM reference — [SKILL.md](./SKILL.md)
-- Contributing — [CONTRIBUTING.md](./CONTRIBUTING.md)
-- Changelog — [CHANGELOG.md](./CHANGELOG.md)
+- [vd3.vanduo.dev](https://vd3.vanduo.dev/)
+- [SKILL.md](./SKILL.md)
+- [CHANGELOG.md](./CHANGELOG.md)
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## License
 
-[MIT](./LICENSE) © Vanduo Open Source Foundation
+[MIT](./LICENSE) © Vanduo
